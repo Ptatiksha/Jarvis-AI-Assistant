@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J A R V I S • Voice AI Companion</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="brand">
+                <h1>J A R V I S</h1>
+                <p>AI Voice Assistant & Digital Companion</p>
+            </div>
+            <div class="status-panel">
+                <span id="clock">00:00:00 AM</span>
+                <span id="connection-status" class="status-indicator online">● ONLINE</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Visualizer & Core Control Section -->
+            <section class="visualizer-section">
+                <div class="canvas-container">
+                    <canvas id="jarvisCanvas"></canvas>
+                </div>
+                <div class="core-status">
+                    <h2 id="aiStatus">SLEEPING</h2>
+                    <p id="aiDetail">Say "Hello Jarvis" or click the Mic button to wake me</p>
+                </div>
+                <div class="controls-bar">
+                    <button id="micBtn" class="btn-primary" title="Toggle Voice Recognition">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="configBtn" class="btn-secondary" title="API Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button id="clearBtn" class="btn-secondary" title="Clear Chat">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Interactive Chat & Dashboard Section -->
+            <section class="dashboard-section">
+                <!-- Tabs -->
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="chatTab"><i class="fas fa-comments"></i> Chat</button>
+                    <button class="tab-btn" data-tab="toolsTab"><i class="fas fa-tools"></i> Tools</button>
+                    <button class="tab-btn" data-tab="notesTab"><i class="fas fa-sticky-note"></i> Notes & To-Do</button>
+                </div>
+
+                <!-- Tab Contents -->
+                <div class="tab-contents">
+                    <!-- Chat Tab -->
+                    <div id="chatTab" class="tab-content active">
+                        <div class="chat-history" id="chatHistory">
+                            <div class="msg system">
+                                <span class="sender">JARVIS</span>
+                                <p class="text">System ready. Say "Hello Jarvis" or type your command below.</p>
+                            </div>
+                        </div>
+                        <div class="input-container">
+                            <input type="text" id="userInput" placeholder="Type a command or ask a question..." autocomplete="off">
+                            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Tools Tab -->
+                    <div id="toolsTab" class="tab-content">
+                        <div class="tools-grid">
+                            <div class="tool-card">
+                                <h3><i class="fas fa-cloud-sun"></i> Weather Check</h3>
+                                <div class="inline-form">
+                                    <input type="text" id="weatherInput" placeholder="Enter city name">
+                                    <button onclick="getWeather()"><i class="fas fa-search"></i></button>
+                                </div>
+                                <p id="weatherResult" class="tool-output">Search city to view forecast.</p>
+                            </div>
+
+                            <div class="tool-card">
+                                <h3><i class="fas fa-calculator"></i> Quick Math</h3>
+                                <div class="inline-form">
+                                    <input type="text" id="calcInput" placeholder="e.g. 45 * 12 + 100">
+                                    <button onclick="calculateMath()"><i class="fas fa-equals"></i></button>
+                                </div>
+                                <p id="calcResult" class="tool-output">Result: -</p>
+                            </div>
+
+                            <div class="tool-card">
+                                <h3><i class="fas fa-hourglass-half"></i> Set Timer</h3>
+                                <div class="inline-form">
+                                    <input type="number" id="timerSeconds" placeholder="Seconds">
+                                    <button onclick="startTimer()"><i class="fas fa-play"></i></button>
+                                </div>
+                                <p id="timerDisplay" class="tool-output">Timer: 0s</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes & To-Do Tab -->
+                    <div id="notesTab" class="tab-content">
+                        <div class="notes-container">
+                            <div class="todo-section">
+                                <h3><i class="fas fa-list-check"></i> To-Do Items</h3>
+                                <div class="inline-form">
+                                    <input type="text" id="todoInput" placeholder="Add new task...">
+                                    <button onclick="addTodo()"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <ul id="todoList" class="custom-list"></ul>
+                            </div>
+                            <div class="notes-section">
+                                <h3><i class="fas fa-pen-to-square"></i> Saved Notes</h3>
+                                <div class="inline-form">
+                                    <input type="text" id="noteInput" placeholder="Remember something...">
+                                    <button onclick="saveNote()"><i class="fas fa-save"></i></button>
+                                </div>
+                                <ul id="notesList" class="custom-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h2><i class="fas fa-cog"></i> Jarvis Settings</h2>
+            <p class="modal-desc">Configure your Groq API Key for live AI responses (Optional).</p>
+            <div class="form-group">
+                <label for="groqApiKey">Groq API Key:</label>
+                <input type="password" id="groqApiKey" placeholder="gsk_...">
+            </div>
+            <button id="saveApiKeyBtn" class="btn-primary">Save Key</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
