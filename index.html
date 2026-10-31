@@ -1,931 +1,311 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J A R V I S • Neural Voice AI Companion</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        body {
-            background-color: #04080e;
-            color: #00f0ff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background-image: 
-                radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 80%),
-                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 1350px;
-            height: 92vh;
-            display: flex;
-            flex-direction: column;
-            background: rgba(8, 16, 26, 0.85);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            border-radius: 20px;
-            box-shadow: 0 0 35px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05);
-            backdrop-filter: blur(12px);
-            overflow: hidden;
-        }
-
-        /* Top Header */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 18px 30px;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
-            background: rgba(4, 12, 20, 0.6);
-        }
-
-        .brand h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            letter-spacing: 5px;
-            color: #00f0ff;
-            text-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
-        }
-
-        .brand p {
-            font-size: 0.85rem;
-            color: #5d7d8e;
-            letter-spacing: 1px;
-        }
-
-        .status-panel {
-            display: flex;
-            gap: 25px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.95rem;
-            align-items: center;
-        }
-
-        .status-indicator.online {
-            color: #00ffaa;
-            text-shadow: 0 0 10px rgba(0, 255, 170, 0.6);
-        }
-
-        /* Main Workspace Grid */
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1.25fr;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* Visualizer Section */
-        .visualizer-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 25px;
-            border-right: 1px solid rgba(0, 240, 255, 0.15);
-            background: radial-gradient(circle at center, rgba(0, 240, 255, 0.03) 0%, transparent 70%);
-        }
-
-        .canvas-container {
-            width: 100%;
-            max-width: 360px;
-            height: 360px;
-            position: relative;
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        .core-status {
-            text-align: center;
-            margin: 15px 0;
-        }
-
-        .core-status h2 {
-            font-family: 'Orbitron', sans-serif;
-            color: #00f0ff;
-            letter-spacing: 3px;
-            font-size: 1.6rem;
-            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-        }
-
-        .core-status p {
-            color: #8da2b0;
-            font-size: 1rem;
-            margin-top: 5px;
-        }
-
-        /* Control Buttons */
-        .controls-bar {
-            display: flex;
-            gap: 18px;
-            align-items: center;
-        }
-
-        button {
-            cursor: pointer;
-            border: none;
-            outline: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-primary {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            background: rgba(0, 240, 255, 0.05);
-            border: 2px solid #00f0ff;
-            color: #00f0ff;
-            font-size: 1.5rem;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
-        }
-
-        .btn-primary:hover, .btn-primary.active {
-            background: #00f0ff;
-            color: #04080e;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
-            transform: scale(1.05);
-        }
-
-        .btn-secondary {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: rgba(10, 24, 38, 0.8);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            color: #5d7d8e;
-            font-size: 1.1rem;
-        }
-
-        .btn-secondary:hover {
-            color: #00f0ff;
-            border-color: #00f0ff;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-        }
-
-        /* Dashboard & Chat Section */
-        .dashboard-section {
-            display: flex;
-            flex-direction: column;
-            background: rgba(4, 10, 18, 0.5);
-        }
-
-        .tabs-header {
-            display: flex;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
-            background: rgba(6, 14, 24, 0.8);
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 16px;
-            background: transparent;
-            color: #5d7d8e;
-            font-size: 1.05rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            border-bottom: 2px solid transparent;
-        }
-
-        .tab-btn.active {
-            color: #00f0ff;
-            border-bottom-color: #00f0ff;
-            background: rgba(0, 240, 255, 0.05);
-            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
-        }
-
-        .tab-contents {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            padding: 20px;
-        }
-
-        .tab-content {
-            display: none;
-            height: 100%;
-            flex-direction: column;
-        }
-
-        .tab-content.active {
-            display: flex;
-        }
-
-        /* Chat Window */
-        .chat-history {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding-right: 10px;
-        }
-
-        .msg {
-            max-width: 82%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 1rem;
-            line-height: 1.5;
-        }
-
-        .msg .sender {
-            display: block;
-            font-size: 0.75rem;
-            font-family: 'Orbitron', sans-serif;
-            margin-bottom: 4px;
-            letter-spacing: 1px;
-        }
-
-        .msg.user {
-            align-self: flex-end;
-            background: rgba(0, 240, 255, 0.12);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            color: #e0f8ff;
-            border-bottom-right-radius: 2px;
-        }
-
-        .msg.jarvis {
-            align-self: flex-start;
-            background: rgba(10, 24, 38, 0.9);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            color: #00f0ff;
-            border-bottom-left-radius: 2px;
-        }
-
-        .msg.system {
-            align-self: center;
-            background: transparent;
-            border: 1px dashed rgba(0, 240, 255, 0.2);
-            color: #5d7d8e;
-            text-align: center;
-        }
-
-        .input-container {
-            display: flex;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .input-container input, .inline-form input {
-            flex: 1;
-            padding: 12px 18px;
-            background: rgba(6, 14, 24, 0.9);
-            border: 1px solid rgba(0, 240, 255, 0.25);
-            border-radius: 10px;
-            color: #00f0ff;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        .input-container input:focus, .inline-form input:focus {
-            border-color: #00f0ff;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-        }
-
-        .input-container button, .inline-form button {
-            padding: 12px 22px;
-            background: rgba(0, 240, 255, 0.1);
-            border: 1px solid #00f0ff;
-            border-radius: 10px;
-            color: #00f0ff;
-            font-size: 1rem;
-        }
-
-        .input-container button:hover, .inline-form button:hover {
-            background: #00f0ff;
-            color: #04080e;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
-        }
-
-        /* Tools Section */
-        .tools-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            overflow-y: auto;
-        }
-
-        .tool-card {
-            background: rgba(6, 14, 24, 0.8);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            padding: 18px;
-            border-radius: 12px;
-        }
-
-        .tool-card h3 {
-            font-size: 1.15rem;
-            color: #00f0ff;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .inline-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .tool-output {
-            font-size: 0.95rem;
-            color: #8da2b0;
-        }
-
-        /* Notes & Todo */
-        .notes-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            height: 100%;
-        }
-
-        .todo-section, .notes-section {
-            display: flex;
-            flex-direction: column;
-            background: rgba(6, 14, 24, 0.8);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            padding: 16px;
-            border-radius: 12px;
-        }
-
-        .custom-list {
-            list-style: none;
-            overflow-y: auto;
-            margin-top: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .custom-list li {
-            background: rgba(0, 240, 255, 0.05);
-            border: 1px solid rgba(0, 240, 255, 0.15);
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #e0f8ff;
-        }
-
-        .custom-list li button {
-            background: transparent;
-            color: #ff5555;
-            font-size: 0.9rem;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(4, 8, 14, 0.85);
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .modal-content {
-            background: #081b24;
-            border: 1px solid #00f0ff;
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 450px;
-            position: relative;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #5d7d8e;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(4, 10, 18, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 240, 255, 0.2);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00f0ff;
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JARVIS • Active AI Companion</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#242424;color:#e8e8e8;font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;padding:22px 30px}
+header{display:flex;align-items:center;gap:24px;margin-bottom:10px}
+h1{margin:0;font-size:27px;font-weight:600;letter-spacing:.1em}
+.sub{font-size:12px;color:#8196a5}
+.sp{flex:1}
+#on{color:#77e3bd;font-size:12px;font-weight:600}
+#clock{font:14px Consolas,monospace}
+button,input{font:inherit;color:inherit}
+button{background:#1f6aa5;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+button:hover{background:#2a7bbd}
+button:focus-visible,input:focus-visible{outline:2px solid #5bd8f4;outline-offset:2px}
+.ghost{background:#333;font-size:12px;padding:6px 10px}
+main{flex:1;display:grid;grid-template-columns:3fr 2fr;gap:18px;background:#2b2b2b;border:1px solid #1d303a;border-radius:22px;padding:18px;min-height:0}
+#cv{width:100%;height:100%;min-height:420px;background:#0b1116;border-radius:8px;display:block}
+#chatbox{display:flex;flex-direction:column;border:1px solid #20343e;border-radius:18px;padding:16px;min-height:420px;max-height:calc(100vh - 230px)}
+#chatbox h2{margin:0 0 8px;font-size:14px;font-weight:600}
+#chat{flex:1;overflow-y:auto;background:#333;border-radius:12px;padding:12px}
+.m{margin-bottom:14px;font-size:14px}
+.m b{font-size:12px;color:#8fb4c4}.m i{font-style:normal;color:#6f8b99;margin-left:8px}
+.m p{margin:2px 0 0;white-space:pre-wrap;line-height:1.45}
+form{display:flex;gap:8px;margin-top:10px}
+form input{flex:1;background:#333;border:1px solid #444;border-radius:8px;padding:8px 10px}
+footer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;background:#2b2b2b;border:1px solid #1d303a;border-radius:16px;padding:12px 18px}
+#st{font-weight:600}#dt{color:#9eb2bd;font-size:13px}#sec{font-size:11px;color:#6f8b99}
+#start{position:fixed;inset:0;background:#242424ee;display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+#start div{background:#2b2b2b;border:1px solid #20343e;border-radius:18px;padding:28px;max-width:420px;width:100%}
+#start input{width:100%;margin:8px 0 16px;background:#333;border:1px solid #444;border-radius:8px;padding:9px 10px}
+#start p{font-size:13px;color:#9eb2bd;line-height:1.5;margin:6px 0}
+@media(max-width:820px){body{padding:14px}main{grid-template-columns:1fr}#chatbox{max-height:60vh}}
+</style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Top Bar -->
-        <header class="top-bar">
-            <div class="brand">
-                <h1>J A R V I S</h1>
-                <p>Neural Voice AI & Digital Companion</p>
-            </div>
-            <div class="status-panel">
-                <span id="clock">00:00:00 AM</span>
-                <span id="connection-status" class="status-indicator online">● ONLINE</span>
-            </div>
-        </header>
+<header>
+ <div><h1>J A R V I S</h1><div class="sub">Direct Active Voice Assistant</div></div>
+ <span class="sp"></span>
+ <button class="ghost" id="keybtn">API key</button>
+ <span id="on">●&nbsp; ONLINE</span><span id="clock"></span>
+</header>
+<main>
+ <canvas id="cv" aria-label="Jarvis status animation"></canvas>
+ <section id="chatbox">
+  <h2>CONVERSATION</h2>
+  <div id="chat" aria-live="polite"></div>
+  <form id="f"><input id="txt" placeholder="Type karke bhi bol sakte ho…" autocomplete="off"><button>Send</button></form>
+ </section>
+</main>
+<footer>
+ <span id="st">SLEEPING</span><span id="dt"></span><span class="sp"></span>
+ <span id="sec"></span><button class="ghost" id="ul" title="Ctrl+Alt+J">Unlock</button>
+</footer>
+<div id="start"><div>
+ <h1>J A R V I S</h1>
+ <p>Microphone permission allow karna. Exact Jarvis voice (Madhur / Prabhat) ke liye Microsoft Edge me kholo.</p>
+ <label for="k" style="font-size:13px">Groq API key (sirf is browser me save hoti hai)</label>
+ <input id="k" type="password" placeholder="gsk_..." autocomplete="off">
+ <button id="go">Start Jarvis</button>
+</div></div>
 
-        <!-- Main Workspace -->
-        <main class="main-content">
-            <!-- Left Visualizer Section -->
-            <section class="visualizer-section">
-                <div class="canvas-container">
-                    <canvas id="jarvisCanvas"></canvas>
-                </div>
-                <div class="core-status">
-                    <h2 id="aiStatus">SLEEPING</h2>
-                    <p id="aiDetail">Say "Hello Jarvis" or click the Mic button to wake me</p>
-                </div>
-                <div class="controls-bar">
-                    <button id="micBtn" class="btn-primary" title="Toggle Listening">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <button id="configBtn" class="btn-secondary" title="API Settings">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <button id="clearBtn" class="btn-secondary" title="Clear Chat">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </section>
+<script>
+const SYS="Tumhara naam Jarvis hai. Tum ek smart, calm, friendly aur natural AI voice assistant ho. Robotic ya template jaisa mat bolo; context ke hisab se natural conversational phrasing use karo. Har reply ko greeting se start mat karo aur user ki baat ko unnecessarily repeat mat karo. Agar simple acknowledgement enough ho to seedha short acknowledgement do. User confused ho to simple step-by-step explain karo. User se natural human assistant ki tarah baat karo. Reply user ki language ke according karo. English question ka English mein answer do. Hindi question ka Hindi mein answer do. Hinglish question ka natural Hinglish mein answer do. Marathi question ka Marathi mein answer do. Normal answers short, clear and conversational rakho. Usually 2 se 4 sentences mein answer do. Study ya programming question mein zarurat ho to properly explain karo. Calculations ka exact answer do. Response voice mein bola jayega, isliye natural spoken sentences use karo. Unnecessary markdown, stars, hashes aur headings mat use karo. Agar user follow-up question pooche to recent conversation context ka use karo. Agar context insufficient ho to guess karne ke bajay clarification maango. Sensitive actions kabhi user confirmation ke bina execute karne ko mat kaho. MOOD-AWARE CONVERSATION: User ke words aur context se unka possible mood samjho, lekin certainty ka claim mat karo. Agar user gusse mein lage, calmly acknowledge karo, argue ya lecture mat karo, aur poochho kya hua ya kis tarah help karun. Agar user sad, lonely, disappointed ya upset lage, pehle empathy dikhao, unki feeling ko dismiss mat karo, aur gently poochho woh share karna chahte hain ya distraction chahte hain. Agar user happy ya excited ho, unki energy ko naturally match karo aur poochho kya achha hua; overdo mat karo. Agar user bimar ya pain mein hone ki baat kare, caring response do, simple safe suggestion do, diagnosis ya medicine prescribe mat karo; severe/unusual symptoms mein trusted adult/medical professional ko batane ko kaho. Agar user tired/stressed/confused ho, short supportive reply aur ek manageable next step do. Agar mood clear na ho, assume mat karo; normal friendly response do. Agar user apne mood ke saath koi task bhi bole, dono ka dhyan rakho: pehle brief caring acknowledgement, phir task ko handle karo. Mood ko user ke against use mat karo, unki feeling ka mazaak mat banao, aur baar-baar mood label mat karo.";
 
-            <!-- Right Dashboard & Tools Section -->
-            <section class="dashboard-section">
-                <div class="tabs-header">
-                    <button class="tab-btn active" data-tab="chatTab"><i class="fas fa-comments"></i> Chat</button>
-                    <button class="tab-btn" data-tab="toolsTab"><i class="fas fa-tools"></i> Tools</button>
-                    <button class="tab-btn" data-tab="notesTab"><i class="fas fa-sticky-note"></i> Notes & To-Do</button>
-                </div>
+const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const LS=(k,d)=>{try{return JSON.parse(localStorage[k])||d}catch{return d}},SV=(k,v)=>{localStorage[k]=JSON.stringify(v)};
+let KEY=localStorage.jarvisKey||"",msgs=[{role:"system",content:SYS}],awake=false,privacy=false,locked=false,
+    last=Date.now(),state="SLEEPING",waiter=null,q=[],bgq=[],listening=false,running=false,denied=false,phase=0;
 
-                <div class="tab-contents">
-                    <!-- Chat Tab -->
-                    <div id="chatTab" class="tab-content active">
-                        <div class="chat-history" id="chatHistory">
-                            <div class="msg system">
-                                <span class="sender">JARVIS SYSTEM</span>
-                                <p class="text">System ready. Open in Microsoft Edge for best Neural Voice experience.</p>
-                            </div>
-                        </div>
-                        <div class="input-container">
-                            <input type="text" id="userInput" placeholder="Ask Jarvis anything or type a command..." autocomplete="off">
-                            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-                        </div>
-                    </div>
+/* ---------- UI ---------- */
+function sec(){$("#sec").textContent=`MIC: ${privacy?"OFF":awake?"ACTIVE":"WAKE ONLY"}  •  SESSION: ${locked?"LOCKED":"UNLOCKED"}`}
+function status(s,d){state=s;$("#st").textContent=s;
+ $("#dt").textContent=d||({SLEEPING:"Say ‘Hello Jarvis’ when you need me",LISTENING:"I’m listening…",THINKING:"One moment…",SPEAKING:"Here’s what I found",READY:"Ready when you are"}[s]||"");sec()}
+function log(role,t){const d=document.createElement("div");d.className="m";
+ d.innerHTML="<b></b><p></p>";d.firstChild.textContent=role+"   ";
+ const i=document.createElement("i");i.textContent=new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+ d.firstChild.append(i);d.lastChild.textContent=t;$("#chat").append(d);$("#chat").scrollTop=1e9}
+setInterval(()=>$("#clock").textContent=new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true}),1000);
 
-                    <!-- Tools Tab -->
-                    <div id="toolsTab" class="tab-content">
-                        <div class="tools-grid">
-                            <div class="tool-card">
-                                <h3><i class="fas fa-cloud-sun"></i> Weather Forecast</h3>
-                                <div class="inline-form">
-                                    <input type="text" id="weatherInput" placeholder="Enter city name...">
-                                    <button onclick="getWeather()"><i class="fas fa-search"></i></button>
-                                </div>
-                                <p id="weatherResult" class="tool-output">Enter a city to check temperature.</p>
-                            </div>
+/* ---------- VOICE: same voices (Edge TTS names) + rate +12% ---------- */
+let voices=[];const lv=()=>voices=speechSynthesis.getVoices();lv();speechSynthesis.onvoiceschanged=lv;
+const pick=h=>voices.find(v=>v.name.includes(h?"Madhur":"Prabhat"))||voices.find(v=>v.lang.replace("_","-")==(h?"hi-IN":"en-IN"));
+let chain=Promise.resolve();
+const speak=t=>chain=chain.then(()=>talk(t)).catch(()=>{});
+function talk(raw){
+ let t=String(raw??"").trim();if(!t)return;
+ t=t.replace(/[*#`]/g,"").replace(/_/g," ").replace(/\+/g," plus ").replace(/=/g," equals ").replace(/×/g," multiplied by ").replace(/÷/g," divided by ").replace(/%/g," percent ");
+ log("JARVIS",t);status("SPEAKING",t.slice(0,90));
+ const hi=/[\u0900-\u097F]/.test(t),v=pick(hi),parts=t.match(/[^.!?।\n]+[.!?।]*\s*/g)||[t];
+ return parts.reduce((p,s)=>p.then(()=>new Promise(r=>{
+  const u=new SpeechSynthesisUtterance(s);if(v)u.voice=v;u.lang=v?v.lang:(hi?"hi-IN":"en-IN");u.rate=1.12;
+  const z=setTimeout(r,s.length*130+4000);u.onend=u.onerror=()=>{clearTimeout(z);r()};speechSynthesis.speak(u)})),Promise.resolve()).then(()=>sleep(300));
+}
+const bg=t=>listening?bgq.push(t):speak(t);
 
-                            <div class="tool-card">
-                                <h3><i class="fas fa-calculator"></i> Quick Calculation</h3>
-                                <div class="inline-form">
-                                    <input type="text" id="calcInput" placeholder="e.g. 250 * 4 + 100">
-                                    <button onclick="calculateMath()"><i class="fas fa-equals"></i></button>
-                                </div>
-                                <p id="calcResult" class="tool-output">Result: -</p>
-                            </div>
+/* ---------- LISTEN: Google speech recognition, en-IN (same as py) ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(ms,lim){return new Promise(res=>{
+ if(q.length)return res({t:q.shift(),k:1});
+ let done=0,rec,z;
+ const fin=(t,k)=>{if(done)return;done=1;clearTimeout(z);waiter=null;listening=false;try{rec&&rec.abort()}catch{}res({t:t||"",k})};
+ waiter=t=>fin(t,1);if(!SR)return;
+ rec=new SR();rec.lang="en-IN";
+ rec.onresult=e=>fin(e.results[0][0].transcript.trim());
+ rec.onerror=e=>{if(/not-allowed|service/.test(e.error)&&!denied){denied=1;log("SYSTEM","Mic permission nahi mili. Address bar me mic allow karo, ya neeche type karke use karo.")}fin("")};
+ rec.onend=()=>fin("");
+ z=setTimeout(()=>fin(""),ms+lim);listening=true;try{rec.start()}catch{fin("")}})}
+async function ask(p,ms=8,lim=12){await speak(p);await sleep(250);status("LISTENING","Aapka answer sun raha hoon...");
+ const r=await listen(ms*1000,lim*1000);if(r.t)log("YOU",r.t);return r.t}
+const NO=["no","nope","nah","nahi","nahin","nhi","cancel","mat karo","mat bhejo","rehne do","chhodo","chod do","नहीं","मत भेजो","कैंसल"],
+      YES=["yes","yeah","yup","haan","ha","haa","han","send karo","confirm","okay","ok","sure","kar do","bhejo","हाँ","हा","भेजो","कन्फर्म"];
+async function conf(d){
+ await speak(`Main ${d}. Kya main ye karu? Yes ya No bolo.`);
+ for(let i=1;i<3;i++){await sleep(450);status("LISTENING");const r=await listen(12000,7000);
+  const a=r.t.toLowerCase().replace(/[^a-z0-9\u0900-\u097f\s]/g," ").replace(/\s+/g," ").trim();if(r.t)log("YOU",r.t);
+  if(NO.some(p=>a==p||a.includes(p))){await speak("Theek hai, action cancel kar diya.");return false}
+  if(YES.some(p=>a==p||a.includes(p))){await speak("Okay.");return true}
+  if(i==1)await speak("Mujhe jawab clear nahi mila. Sirf Yes ya No bolo.")}
+ await speak("Confirmation clear nahi tha. Safety ke liye action cancel kar diya.");return false}
 
-                            <div class="tool-card">
-                                <h3><i class="fas fa-hourglass-half"></i> Countdown Timer</h3>
-                                <div class="inline-form">
-                                    <input type="number" id="timerSeconds" placeholder="Seconds...">
-                                    <button onclick="startTimer()"><i class="fas fa-play"></i></button>
-                                </div>
-                                <p id="timerDisplay" class="tool-output">Timer: 0s</p>
-                            </div>
-                        </div>
-                    </div>
+/* ---------- AI (Groq, same model + memory) ---------- */
+async function ai(question){
+ if(!KEY)return "Groq API key set nahi hai. Upar API key button se key daalo.";
+ try{msgs.push({role:"user",content:question});
+  const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+KEY},
+   body:JSON.stringify({model:"openai/gpt-oss-120b",messages:msgs,temperature:.45,max_tokens:240})});
+  const rep=((await r.json()).choices?.[0]?.message?.content||"").trim();
+  if(!rep)return "Mujhe iska answer nahi mila.";
+  msgs.push({role:"assistant",content:rep});
+  if(msgs.length>17)msgs=[msgs[0],...msgs.slice(-14)];
+  return rep}catch(e){return "AI se connect karne mein problem aa rahi hai."}}
+function mood(t){
+ const L={anger:["gussa","gusse","angry","furious","irritate","irritated","bahut gussa","dimag kharab"],
+ sad:["sad","dukhi","udaas","bura lag","rona","ro rahi","ro raha","lonely","akela","akeli","upset","dil kharab","mood kharab","depressed"],
+ happy:["happy","khush","excited","maza aa","bahut achha","good news","i am great","mast mood"],
+ sick:["bimar","beemar","tabiyat kharab","sar dukh","sir dukh","headache","bukhar","fever","pain ho","dard ho","nausea","ulti"],
+ tired:["thak gayi","thak gaya","tired","exhausted","stress","stressed","tension","overwhelmed"],
+ conf:["confused","samajh nahi aa","kya karun","pata nahi kya karun","pareshan"]},
+ R={anger:"Lagta hai kuch tumhe bahut irritate kar raha hai. Main calmly sun sakta hoon—kya hua, ya abhi tumhe kis tarah ki help chahiye?",
+ sad:"Mujhe afsos hai ki tum aisa feel kar rahi ho. Agar tum chaho toh bata sakti ho kya hua; ya hum kisi light topic ya music se thoda mind divert kar sakte hain.",
+ happy:"Arey wah, ye sunkar achha laga! Kya special hua? Batao, main sun raha hoon.",
+ sick:"Oh, apna dhyan rakho. Kya symptoms ya takleef ho rahi hai? Agar dard bahut tez ya achanak shuru hua hai, ya saath mein vision problem, confusion, fever ya vomiting hai, toh kisi trusted adult ko abhi batao aur medical help lo.",
+ tired:"Lagta hai tum kaafi thak ya stress feel kar rahi ho. Agar possible ho toh thoda break aur paani le lo. Chaho toh hum ek chhota sa next step saath mein decide kar sakte hain.",
+ conf:"Koi baat nahi, ek-ek step karke dekhte hain. Tum mujhe situation thodi si batao; main options simple karke samjha dunga."};
+ for(const k in L)if(L[k].some(x=>t.includes(x)))return R[k]}
 
-                    <!-- Notes & To-Do Tab -->
-                    <div id="notesTab" class="tab-content">
-                        <div class="notes-container">
-                            <div class="todo-section">
-                                <h3><i class="fas fa-list-check"></i> To-Do List</h3>
-                                <div class="inline-form">
-                                    <input type="text" id="todoInput" placeholder="Add task...">
-                                    <button onclick="addTodo()"><i class="fas fa-plus"></i></button>
-                                </div>
-                                <ul id="todoList" class="custom-list"></ul>
-                            </div>
-                            <div class="notes-section">
-                                <h3><i class="fas fa-pen-to-square"></i> Saved Notes</h3>
-                                <div class="inline-form">
-                                    <input type="text" id="noteInput" placeholder="Save note...">
-                                    <button onclick="saveNote()"><i class="fas fa-save"></i></button>
-                                </div>
-                                <ul id="notesList" class="custom-list"></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
+/* ---------- COMMANDS ---------- */
+const clean=t=>t.toLowerCase().trim().replace(/\s+/g," ").replace(/^jarvis[\s,]*/,"").trim();
+const has=(t,...a)=>a.some(x=>t.includes(x)),is=(t,...a)=>a.includes(t);
+const go=u=>{if(!window.open(u,"_blank"))log("SYSTEM","Popup block hua. Site settings me popups allow karo: "+u)};
+const SITES={youtube:"https://www.youtube.com",whatsapp:"https://web.whatsapp.com","whatsapp web":"https://web.whatsapp.com",instagram:"https://www.instagram.com",insta:"https://www.instagram.com",
+ chrome:"https://www.google.com",browser:"https://www.google.com",gmail:"https://mail.google.com",maps:"https://maps.google.com","vs code":"https://vscode.dev",
+ word:"https://www.office.com/launch/word",spotify:"https://open.spotify.com",drive:"https://drive.google.com",calendar:"https://calendar.google.com"};
+const NOWEB=/notepad|calculator|\bcalc\b|\bpaint\b|camera|\bsettings?\b|file explorer|\bcmd\b|command prompt|volume|aawaz|\bawaz\b|\bmute\b|screenshot|screen shot|minimize|lock (laptop|screen)|laptop lock|window (band|close)|close window|^type karo|\benter\b|backspace|brightness|wi-?fi|bluetooth|clipboard|pdf ban|image ban|photo ban|\bnews\b|khabar|whatsapp.*(message|msg)|\bemail\b|instagram.*(message|msg|dm)|reminder|startup|file ban|file dhundo|folder dhundo|\bram\b|storage|disk usage|pc info|\bcpu\b|system status/;
+async function yt(query){query=query||await ask("YouTube par kya search ya play karna hai?");if(!query)return;
+ await speak(`YouTube par ${query} search karke play kar raha hoon.`);go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}
+async function weather(t){
+ let p=t.replace(/\b(aaj|kal|weather|mausam|kaisa|kaisi|hai|batao|tomorrow|today|in)\b/gi," ").replace(/\s+/g," ").trim();
+ if(!p)p=await ask("Kis city ka weather chahiye?");if(!p)return;
+ try{const d=await(await fetch("https://wttr.in/"+encodeURIComponent(p)+"?format=j1")).json(),tm=/kal|tomorrow/.test(t),day=d.weather[tm?1:0],c=d.current_condition[0];
+  if(!tm)await speak(`${p} mein abhi ${c.temp_C} degree Celsius hai, ${c.weatherDesc[0].value}. Aaj maximum ${day.maxtempC} aur minimum ${day.mintempC} degree rahega.`);
+  else await speak(`Kal ${p} mein maximum ${day.maxtempC} aur minimum ${day.mintempC} degree rahega. Mausam ${day.hourly[4].weatherDesc[0].value} rehne ka forecast hai.`)
+ }catch(e){await speak("Weather check nahi ho paya.")}}
+function alarm(h,m){speak(`${h}:${String(m).padStart(2,"0")} ka alarm set ho gaya hai.`);
+ const iv=setInterval(()=>{const n=new Date();if(n.getHours()==h&&n.getMinutes()==m){clearInterval(iv);for(let i=0;i<4;i++)bg("Alarm ka time ho gaya hai.")}},10000)}
 
-    <!-- Modal Settings -->
-    <div id="configModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeModal">&times;</span>
-            <h2><i class="fas fa-cog"></i> Settings</h2>
-            <br>
-            <div class="form-group">
-                <label style="color:#00f0ff;">Groq API Key (Optional):</label><br><br>
-                <input type="password" id="groqApiKey" placeholder="gsk_..." style="width:100%; padding:10px; background:#04080e; border:1px solid #00f0ff; color:#00f0ff; border-radius:6px;">
-            </div>
-            <br>
-            <button id="saveApiKeyBtn" style="padding:10px 20px; background:#00f0ff; color:#000; font-weight:bold; border-radius:6px;">Save Key</button>
-        </div>
-    </div>
+async function proc(o){
+ const t=clean(o),ol=o.toLowerCase();last=Date.now();
+ if(is(t,"privacy mode","privacy mode on","privacy on","mic off","microphone off")){await speak("Privacy mode on. Microphone listening ab completely disabled hai. Wapas wake mode mein aane ke liye Control Alt J press kijiye.");privacy=true;return"privacy"}
+ if(is(t,"jarvis lock","lock jarvis","session lock","lock session")){locked=true;sec();await speak("Jarvis sensitive features lock kar diye gaye hain. Unlock locally karne ke liye Control Alt J press kijiye.");return 1}
+ if(is(t,"jarvis unlock","unlock jarvis","session unlock","unlock session")){await speak("Security ke liye session voice se unlock nahi hoga. Control Alt J locally press kijiye.");return 1}
+ if(/\b(password|passcode|otp|one time password|api key|apikey|secret key|token|pin|cvv)\b/.test(ol)){await speak("Security ke liye password, OTP, PIN ya API key ko main repeat ya memory mein save nahi karunga.");return 1}
+ if(locked&&!has(t,"time","date","battery","who are you","tum kaun ho")){await speak("Jarvis session locked hai. Sensitive commands abhi disabled hain.");return 1}
+ if(is(t,"bye","bye bye","goodbye","good night","stop","stop jarvis","so jao","so ja","jarvis so jao","sleep","sleep jarvis","band ho jao","jarvis band karo")){
+  await speak("Okay, main sleep mode mein ja raha hoon. Hello Jarvis ya uth jao bolkar mujhe wapas jaga sakte ho.");return"sleep"}
+ if(is(t,"exit","exit jarvis","close jarvis","quit jarvis")){await speak("Okay, Jarvis completely band kar raha hoon. Bye.");return false}
+ if(has(t,"who are you","tum kaun ho","aap kaun ho")){await speak("Main Jarvis hoon, aapka AI voice assistant.");return 1}
+ if(has(t,"kisne banaya","who made you","who created you","creator kaun")){await speak("Mujhe Pratiksha Naik ne banaya hai.");return 1}
 
-    <script>
-        // State Variables
-        let isListening = false;
-        let state = 'SLEEPING'; 
-        let phase = 0;
-        let groqApiKey = localStorage.getItem('GROQ_API_KEY') || '';
+ if(t.startsWith("mera task add karo")||t.startsWith("task add karo")||t.startsWith("todo add")){
+  let k=t.replace(/^(mera )?task add karo[: ]*|^todo add[: ]*/,"").trim();if(!k)k=await ask("Kaunsa task add karna hai?");
+  if(k&&await conf(`to-do list mein ${k} add karunga`)){SV("todo",[...LS("todo",[]),k]);await speak("Task to-do list mein add ho gaya.")}return 1}
+ if(has(t,"todo","to-do","mere task")){const d=LS("todo",[]);await speak(d.length?"Aapke tasks hain: "+d.slice(0,10).join("; "):"To-do list empty hai.");return 1}
+ if(is(t,"forget all memory","forget my memory","jarvis memory clear","sab memory bhool jao","meri memory delete karo")){
+  if(await conf("saved notes aur conversational context clear karunga")){SV("notes",[]);msgs=[msgs[0]];await speak("Saved notes aur conversational context clear kar diya.")}return 1}
+ if(t.startsWith("yaad rakho")||t.startsWith("remember this")){const n=o.replace(/^(yaad rakho|remember this)[: ]*/i,"").trim();
+  if(n&&await conf(`note memory mein save karunga: ${n}`)){SV("notes",[...LS("notes",[]),n]);await speak("Yaad rakh liya.")}return 1}
+ if(has(t,"maine kya yaad","notes memory","kya yaad rakhne")){const d=LS("notes",[]);await speak(d.length?"Aapne mujhe yaad rakhne bola tha: "+d.slice(-5).join("; "):"Aapne abhi mujhe kuch yaad rakhne nahi bola.");return 1}
+ if(has(t,"weather","mausam")){await weather(t);return 1}
 
-        // DOM References
-        const canvas = document.getElementById('jarvisCanvas');
-        const ctx = canvas.getContext('2d');
-        const micBtn = document.getElementById('micBtn');
-        const aiStatus = document.getElementById('aiStatus');
-        const aiDetail = document.getElementById('aiDetail');
-        const chatHistory = document.getElementById('chatHistory');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const clockEl = document.getElementById('clock');
-        const configBtn = document.getElementById('configBtn');
-        const configModal = document.getElementById('configModal');
-        const closeModal = document.getElementById('closeModal');
-        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-        const groqApiKeyInput = document.getElementById('groqApiKey');
+ if(t.startsWith("translate ")||has(t,"translate karo")){let l="English";for(const x of["Marathi","Hindi","English"])if(t.includes(x.toLowerCase()))l=x;
+  const c=o.replace(/\b(translate|karo|into|in|marathi|hindi|english)\b/gi," ").replace(/\s+/g," ").trim();
+  if(c){status("THINKING");await speak(await ai(`Translate this into ${l}. Return only the translation: ${c}`))}return 1}
+ if(t.startsWith("mujhe ")&&has(t,"padha","padhai","teach")){const k=t.replace(/\b(mujhe|padha|padhai|teach|karo)\b/g," ").replace(/\s+/g," ").trim();
+  await speak(await ai(`Teach me ${k} as a student in simple Hinglish, step by step, with one small example.`));return 1}
+ if(has(t,"quiz","viva start")){const k=t.replace(/\b(quiz|viva|start|karo|lo|mera|mujhe)\b/g," ").replace(/\s+/g," ").trim()||"computer engineering";
+  const qq=await ai(`Ask exactly one short viva/quiz question about ${k}. Do not give the answer yet.`),a=await ask(qq);
+  if(a)await speak(await ai(`Question: ${qq}\nStudent answer: ${a}\nCheck it briefly, correct mistakes, then give the ideal answer.`));return 1}
+ if(has(t,"code banao","program banao","coding mode")){const r=await ai("Give a correct beginner-friendly solution for this programming request. Explain briefly, then provide code: "+o);
+  log("CODE",r);await speak("Code aur explanation chat mein de diya hai.");return 1}
+ if(has(t,"calculate","calculate karo","percent of","percentage","convert ")){await speak(await ai("Calculate this carefully. Give the final answer first and a very short explanation: "+o));return 1}
 
-        // Clock Update
-        setInterval(() => {
-            clockEl.innerText = new Date().toLocaleTimeString();
-        }, 1000);
+ if(NOWEB.test(t)&&!/\balarm\b|\btimer\b/.test(t)){await speak("Ye feature sirf Windows desktop wale Jarvis me kaam karta hai, browser version me nahi.");return 1}
+ if(has(t,"timer")){const n=t.match(/\d+/);if(!n){await speak("Kitne minute ya second ka timer lagana hai?");return 1}
+  const v=+n[0],sec_=t.includes("second"),lab=`${v} ${sec_?"second":"minute"} ka timer`;await speak(`${lab} start kar diya hai.`);
+  setTimeout(()=>{for(let i=0;i<3;i++)bg(`${lab} complete ho gaya hai.`)},v*(sec_?1:60)*1000);return 1}
+ if(has(t,"alarm")){let h=null,m=0;const a=t.match(/\b(\d{1,2})[:.](\d{1,2})\b/);
+  if(a){h=+a[1];m=+a[2]}else{const n=t.match(/\d+/);if(n)h=+n[0]}
+  if(h===null){await speak("Kitne baje ka alarm lagana hai?");return 1}
+  if(t.includes("pm")&&h<12)h+=12;if(t.includes("am")&&h==12)h=0;
+  if(h>23||m>59){await speak("Alarm ka time sahi nahi hai.");return 1}alarm(h,m);return 1}
+ if(has(t,"time kya hua","time kya hai","kitne baje","what time","what is the time","current time","samay kya hai")){
+  await speak(`Abhi ${new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})} hue hain.`);return 1}
+ if(has(t,"date kya hai","aaj ki date","aaj kya tarikh","aaj ki tarikh","what is the date","today date","today's date")){
+  await speak(`Aaj ${new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"})} hai.`);return 1}
+ if(has(t,"battery","charging")){try{const b=await navigator.getBattery();await speak(`Battery ${Math.round(b.level*100)} percent hai. Device ${b.charging?"charging par laga hai":"charging par nahi hai"}.`)}
+  catch{await speak("Is browser me battery status check nahi ho paya.")}return 1}
 
-        // Canvas Setup
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+ if(has(t,"google par","google pe","google mein","google me","search karo","dhoondho","dhundo")||t.startsWith("search ")||t.startsWith("google ")){
+  if(await conf(`web par search karunga: ${o}`)){let k=t;for(const w of["jarvis","google par","google pe","google mein","google me","google","search karo","search kar","search","dhoondho","dhundo","find"])k=k.split(w).join(" ");
+   k=k.replace(/\s+/g," ").trim();if(!k)await speak("Google par kya search karna hai?");else{await speak(`${k} search kar raha hoon.`);go("https://www.google.com/search?q="+encodeURIComponent(k))}}return 1}
+ if(is(t,"youtube par play karo","youtube pe play karo","youtube par kuch play karo","youtube pe kuch play karo","kuch play karo")){if(await conf("YouTube open karunga"))await yt();return 1}
+ if(t.startsWith("play ")){const k=t.slice(5).trim();if(await conf(`YouTube par ${k} search ya play karunga`))await yt(k);return 1}
+ if(/ (bajao|baja do|chalao|chala do)$/.test(t)||has(t,"song bajao","song chalao","gaana bajao","gana bajao","gaana chalao","gana chalao")){
+  const k=t.replace(/\s+(song |gaana |gana )?(bajao|baja do|chalao|chala do)$/,"").trim();
+  if(await conf(`YouTube par ${k||"requested media"} search ya play karunga`))await yt(k||null);return 1}
+ const nm=t.replace(/^open\s+/,"").replace(/\s+kholo$/,"").trim();
+ if(nm&&(t.startsWith("open ")||t.endsWith(" kholo")||SITES[t])){
+  if(nm=="youtube"){if(await conf("YouTube open karunga"))await yt();return 1}
+  if(SITES[nm]){if(await conf(`${nm} open karunga`)){await speak(`${nm} open kar raha hoon.`);go(SITES[nm])}return 1}
+  if(await conf(`${nm} ko web par search karke open karunga`)){go("https://www.google.com/search?q="+encodeURIComponent(nm));await speak(`${nm} ka web search open kar diya.`)}return 1}
 
-        // Canvas HUD Animation
-        function animateCore() {
-            phase += 0.05;
-            const w = canvas.width;
-            const h = canvas.height;
-            const cx = w / 2;
-            const cy = h / 2;
+ status("THINKING","Processing command...");
+ if(!KEY){const m=mood(clean(o));if(m){await speak(m);return 1}}
+ await speak(await ai(o));return 1}
 
-            ctx.clearRect(0, 0, w, h);
+/* ---------- WAKE / SLEEP ---------- */
+function wake(text){
+ const c=(text||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
+ if(["hello jarvis","hello jar","hey jarvis","hey jar","hi jarvis","good morning","good morning jarvis","good afternoon","good evening","uth jao","jarvis uth jao","wake up","wake up jarvis"].some(x=>c.includes(x)))return true;
+ const w=c.split(" ");return["hello","hey","hi"].includes(w[0])&&w.slice(1,3).some(x=>x.startsWith("jar"))}
+const wakeReply=()=>{const h=new Date().getHours();return speak(`${h>=5&&h<12?"Good morning":h>=12&&h<17?"Good afternoon":h>=17&&h<22?"Good evening":"Hello"}! Jarvis is awake. How can I help you?`)};
+function unlock(){if(privacy){privacy=false;last=Date.now()}else if(locked){locked=false;last=Date.now()}sec()}
+addEventListener("keydown",e=>{if(e.ctrlKey&&e.altKey&&e.key.toLowerCase()=="j")unlock()});
+$("#ul").onclick=unlock;
 
-            // Background Star/Particle Orbit
-            for (let i = 0; i < 30; i++) {
-                let a = i * 2.4 + phase * (i % 2 === 0 ? 0.05 : -0.03);
-                let r = 50 + (i * 12) % 110;
-                let x = cx + Math.cos(a) * r;
-                let y = cy + Math.sin(a) * r * 0.7;
-                ctx.fillStyle = '#173b4a';
-                ctx.beginPath();
-                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-                ctx.fill();
-            }
+async function loop(){while(running){try{
+ if(privacy){awake=false;status("SLEEPING","Privacy mode • Ctrl+Alt+J ya Unlock dabao");while(privacy)await sleep(80);continue}
+ if(awake&&Date.now()-last>=180000){awake=false;status("SLEEPING","Say Hello Jarvis to wake me")}
+ while(bgq.length)await speak(bgq.shift());
+ status("LISTENING",awake?"Boliye, main sun raha hoon...":"Wake word sun raha hoon...");
+ const r=await listen(awake?5000:3500,awake?10000:5000);
+ if(!r.t){await sleep(denied?1500:120);continue}
+ log("YOU",r.t);status("THINKING","Processing command...");last=Date.now();
+ if(wake(r.t)){if(awake)await speak("Yes, Jarvis is already awake. Bataiye kya karna hai?");else{awake=true;status("READY","Awake • Ready when you are");await wakeReply()}continue}
+ if(!awake){if(!r.k)continue;awake=true}
+ const res=await proc(r.t);
+ if(res=="privacy"){awake=false;continue}
+ if(res=="sleep"){awake=false;status("SLEEPING","Wake word only • Say Hello Jarvis");continue}
+ if(res===false){running=false;awake=false;status("SLEEPING","Jarvis band hai. Page reload karo.")}
+}catch(e){console.error(e);status("ERROR",e.name+": retrying microphone");await sleep(800)}}}
 
-            let pulse = (Math.sin(phase * 1.5) + 1) / 2;
-            let activity = state === 'LISTENING' ? 15 : state === 'SPEAKING' ? 20 : state === 'THINKING' ? 10 : 3;
+/* ---------- Typed input, start, API key ---------- */
+$("#f").onsubmit=e=>{e.preventDefault();const v=$("#txt").value.trim();$("#txt").value="";if(!v)return;
+ if(privacy){log("SYSTEM","Privacy mode on hai. Ctrl+Alt+J ya Unlock dabao.");return}
+ waiter?waiter(v):q.push(v)};
+$("#keybtn").onclick=()=>{const k=prompt("Groq API key (sirf is browser me save hogi):",KEY);if(k!==null){KEY=k.trim();localStorage.jarvisKey=KEY}};
+$("#go").onclick=()=>{KEY=$("#k").value.trim()||KEY;localStorage.jarvisKey=KEY;$("#start").remove();
+ speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+ log("SYSTEM","Ready. Say ‘Hello Jarvis’ to start.");
+ if(!KEY)log("SYSTEM","AI answers ke liye upar API key button se Groq key daalo.");
+ if(!SR)log("SYSTEM","Is browser me voice recognition nahi hai. Chrome ya Edge use karo; abhi type karke chala sakte ho.");
+ running=true;status("SLEEPING");loop()};
+sec();status("SLEEPING");
 
-            // Outer Sci-Fi Rings
-            for (let i = 4; i > 0; i--) {
-                let r = 40 + i * 18 + activity;
-                ctx.strokeStyle = i % 2 === 0 ? '#286b83' : '#00f0ff';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, phase * (i % 2 === 0 ? 1 : -1), phase * (i % 2 === 0 ? 1 : -1) + Math.PI * 1.2);
-                ctx.stroke();
-            }
-
-            // Glowing Center Core
-            ctx.fillStyle = '#081b24';
-            ctx.strokeStyle = '#00f0ff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 35 + pulse * 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#68ddf5';
-            ctx.beginPath();
-            ctx.arc(cx, cy, 18 + pulse * 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            requestAnimationFrame(animateCore);
-        }
-        animateCore();
-
-        // High-Quality Speech Synthesis Engine (Madhur/Prabhat Neural Voice Integration)
-        let availableVoices = [];
-
-        function loadVoices() {
-            if ('speechSynthesis' in window) {
-                availableVoices = window.speechSynthesis.getVoices();
-            }
-        }
-        loadVoices();
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
-
-        function speak(text) {
-            if (!('speechSynthesis' in window)) return;
-
-            window.speechSynthesis.cancel(); // Stop ongoing speech
-
-            // Clean text formatting
-            let cleanText = text.replace(/[*#_`]/g, '')
-                                .replace(/\+/g, ' plus ')
-                                .replace(/=/g, ' equals ');
-
-            let utterance = new SpeechSynthesisUtterance(cleanText);
-
-            // Select Edge TTS Prabhat / Madhur / Natural Neural Voice
-            let selectedVoice = availableVoices.find(v => 
-                v.name.includes('Madhur') || 
-                v.name.includes('Prabhat') || 
-                v.name.includes('India') || 
-                (v.lang === 'en-IN' || v.lang === 'hi-IN')
-            );
-
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-
-            utterance.onstart = () => updateState('SPEAKING', 'Jarvis is speaking...');
-            utterance.onend = () => updateState(isListening ? 'LISTENING' : 'SLEEPING', isListening ? 'Listening...' : 'Standing by');
-
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // Speech Recognition Setup
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
-
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.lang = 'en-IN';
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[event.results.length - 1][0].transcript.trim();
-                handleUserSpeech(transcript);
-            };
-
-            recognition.onend = () => {
-                if (isListening) recognition.start();
-            };
-        }
-
-        micBtn.addEventListener('click', () => {
-            if (!recognition) {
-                alert("Speech recognition is not supported in this browser.");
-                return;
-            }
-            if (!isListening) {
-                recognition.start();
-                isListening = true;
-                micBtn.classList.add('active');
-                updateState('LISTENING', 'Listening for commands...');
-            } else {
-                recognition.stop();
-                isListening = false;
-                micBtn.classList.remove('active');
-                updateState('SLEEPING', 'Say "Hello Jarvis" or click Mic');
-            }
-        });
-
-        function updateState(newState, detail) {
-            state = newState;
-            aiStatus.innerText = state;
-            aiDetail.innerText = detail;
-        }
-
-        function handleUserSpeech(text) {
-            const cleanText = text.toLowerCase();
-
-            if (state === 'SLEEPING') {
-                if (cleanText.includes('hello jarvis') || cleanText.includes('jarvis') || cleanText.includes('uth jao')) {
-                    updateState('READY', 'Jarvis is Awake.');
-                    speak("Hello! Jarvis is awake. How can I help you?");
-                }
-                return;
-            }
-
-            appendMessage('YOU', text, 'user');
-            processCommand(text);
-        }
-
-        async function processCommand(text) {
-            updateState('THINKING', 'Thinking...');
-            const lower = text.toLowerCase();
-
-            if (lower.includes('time')) {
-                speak(`Abhi ${new Date().toLocaleTimeString()} hue hain.`);
-                appendMessage('JARVIS', `Current time: ${new Date().toLocaleTimeString()}`, 'jarvis');
-                return;
-            }
-            if (lower.includes('date')) {
-                speak(`Aaj ki date ${new Date().toLocaleDateString()} hai.`);
-                appendMessage('JARVIS', `Today's date: ${new Date().toLocaleDateString()}`, 'jarvis');
-                return;
-            }
-            if (lower.includes('who created you') || lower.includes('kisne banaya')) {
-                speak("Mujhe Pratiksha Naik ne banaya hai.");
-                appendMessage('JARVIS', "Mujhe Pratiksha Naik ne banaya hai.", 'jarvis');
-                return;
-            }
-
-            if (groqApiKey) {
-                try {
-                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${groqApiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: 'openai/gpt-oss-120b',
-                            messages: [
-                                { role: 'system', content: 'You are Jarvis, a smart AI voice assistant. Keep answers concise (2-3 sentences max) for spoken responses.' },
-                                { role: 'user', content: text }
-                            ],
-                            max_tokens: 150
-                        })
-                    });
-                    const data = await res.json();
-                    const reply = data.choices[0]?.message?.content || "Mujhe iska answer nahi mila.";
-                    speak(reply);
-                    appendMessage('JARVIS', reply, 'jarvis');
-                } catch {
-                    speak("AI se connect karne mein problem aa rahi hai.");
-                    appendMessage('JARVIS', "AI Connection Error.", 'jarvis');
-                }
-            } else {
-                speak("Maine aapki baat sun li hai. Full AI responses ke liye Settings mein Groq API key add kar lijiye.");
-                appendMessage('JARVIS', "Please set your Groq API key in Settings for AI chat responses.", 'jarvis');
-            }
-        }
-
-        function appendMessage(sender, text, type) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${type}`;
-            msgDiv.innerHTML = `<span class="sender">${sender}</span><p class="text">${text}</p>`;
-            chatHistory.appendChild(msgDiv);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        }
-
-        sendBtn.addEventListener('click', () => {
-            const val = userInput.value.trim();
-            if (val) {
-                if (state === 'SLEEPING') updateState('READY', 'Processing...');
-                appendMessage('YOU', val, 'user');
-                processCommand(val);
-                userInput.value = '';
-            }
-        });
-
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendBtn.click();
-        });
-
-        // Tab Navigation
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-            });
-        });
-
-        // Config Modal
-        configBtn.addEventListener('click', () => {
-            groqApiKeyInput.value = groqApiKey;
-            configModal.style.display = 'flex';
-        });
-        closeModal.addEventListener('click', () => configModal.style.display = 'none');
-        saveApiKeyBtn.addEventListener('click', () => {
-            groqApiKey = groqApiKeyInput.value.trim();
-            localStorage.setItem('GROQ_API_KEY', groqApiKey);
-            configModal.style.display = 'none';
-            alert('Settings Saved!');
-        });
-
-        // Quick Tools Logic
-        function getWeather() {
-            const city = document.getElementById('weatherInput').value.trim();
-            if (!city) return;
-            fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`)
-                .then(res => res.json())
-                .then(data => {
-                    const current = data.current_condition[0];
-                    const text = `${city} mein abhi ${current.temp_C} degree Celsius hai, ${current.weatherDesc[0].value}.`;
-                    document.getElementById('weatherResult').innerText = text;
-                    speak(text);
-                });
-        }
-
-        function calculateMath() {
-            const expr = document.getElementById('calcInput').value;
-            try {
-                const res = eval(expr);
-                document.getElementById('calcResult').innerText = `Result: ${res}`;
-                speak(`Answer hai ${res}`);
-            } catch {
-                document.getElementById('calcResult').innerText = "Invalid Math";
-            }
-        }
-
-        function startTimer() {
-            let secs = parseInt(document.getElementById('timerSeconds').value);
-            if (isNaN(secs) || secs <= 0) return;
-            const disp = document.getElementById('timerDisplay');
-            speak(`${secs} second ka timer start kar diya hai.`);
-            const interval = setInterval(() => {
-                disp.innerText = `Timer: ${secs}s`;
-                if (secs <= 0) {
-                    clearInterval(interval);
-                    disp.innerText = "Timer Complete!";
-                    speak("Timer complete ho gaya hai.");
-                }
-                secs--;
-            }, 1000);
-        }
-
-        function addTodo() {
-            const inp = document.getElementById('todoInput');
-            if (!inp.value.trim()) return;
-            const ul = document.getElementById('todoList');
-            const li = document.createElement('li');
-            li.innerHTML = `${inp.value} <button onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
-            ul.appendChild(li);
-            inp.value = '';
-        }
-
-        function saveNote() {
-            const inp = document.getElementById('noteInput');
-            if (!inp.value.trim()) return;
-            const ul = document.getElementById('notesList');
-            const li = document.createElement('li');
-            li.innerHTML = `${inp.value} <button onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
-            ul.appendChild(li);
-            inp.value = '';
-        }
-    </script>
+/* ---------- Orb animation (port of JarvisGUI.animate) ---------- */
+const cv=$("#cv"),c=cv.getContext("2d"),SH=["#0d1b22","#0d2029","#0e2530","#0e2a36","#10303d","#123744","#15404f","#18495a"],
+ RA=["#245268","#286b83","#2b86a0","#55c7df"],RB=["#173d4e","#20586d","#24758d","#3aa7c0"],
+ LINE={SLEEPING:"Standing by",LISTENING:"I’m listening",THINKING:"Thinking",SPEAKING:"Speaking",READY:"Ready"};
+const circ=(x,y,r,f,s,w)=>{c.beginPath();c.arc(x,y,Math.max(r,0),0,7);if(f){c.fillStyle=f;c.fill()}if(s){c.strokeStyle=s;c.lineWidth=w;c.stroke()}};
+const arc=(x,y,r,s,e,col)=>{c.beginPath();c.arc(x,y,r,-s*Math.PI/180,-(s+e)*Math.PI/180,true);c.strokeStyle=col;c.lineWidth=2;c.stroke()};
+function draw(){
+ phase+=.055;const d=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+ if(cv.width!=Math.round(W*d)||cv.height!=Math.round(H*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
+ const s=Math.min(1,W/520,H/600),w=W/s,h=H/s,cx=w/2,cy=h/2-25;
+ c.setTransform(d*s,0,0,d*s,0,0);c.clearRect(0,0,w,h);
+ for(let i=0;i<34;i++){const a=i*2.399+phase*(i%2?.05:-.035),r=120+(i*37)%230,z=1+(i%3)*.45;circ(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.68,z,"#173b4a")}
+ const br=(1+Math.sin(phase*1.45))/2;let act=3+br*5;
+ if(state=="LISTENING")act=10+12*Math.abs(Math.sin(phase*2.3));else if(state=="THINKING")act=8+7*br;
+ else if(state=="SPEAKING")act=11+15*Math.abs(Math.sin(phase*3));else if(state=="SLEEPING")act=2+br*2;
+ for(let i=8;i>0;i--)circ(cx,cy,74+i*8+act*.25,SH[i-1]);
+ for(let i=0;i<4;i++){const r=92+i*29+act*(.15+i*.06),st=(((phase*(20+i*8)*(i%2?-1:1)*57.3)%360)+360)%360;
+  arc(cx,cy,r,st,105+i*12,RA[i]);arc(cx,cy,r,st+180,55+i*9,RB[i])}
+ if(state=="THINKING")for(let i=0;i<10;i++){const a=phase*2.2+i*Math.PI/5,r=150+5*Math.sin(phase+i);circ(cx+Math.cos(a)*r,cy+Math.sin(a)*r,2.5+i%3,"#7ee7ff")}
+ circ(cx,cy,59+act*.18,"#081b24","#5bd8f4",2);circ(cx,cy,31+3.5*Math.sin(phase*1.7),"#68ddf5");circ(cx,cy,12+2*br,"#d7f9ff");
+ c.textAlign="center";c.fillStyle="#d8f6fc";c.font="600 18px 'Segoe UI',sans-serif";c.fillText(LINE[state]||state,cx,cy+196);
+ c.fillStyle="#5f8493";c.font="10px 'Segoe UI',sans-serif";c.fillText("JARVIS • PERSONAL AI",cx,cy+222);
+ if(state=="LISTENING"||state=="SPEAKING"){c.beginPath();for(let j=0;j<=60;j++){const x=cx-122.5+j*(245/60),e=Math.sin(Math.PI*j/60),
+  y=cy+260+Math.sin(phase*(state=="LISTENING"?2.5:4.2)+j*.55)*18*e+Math.sin(phase*1.7+j*.19)*7*e;j?c.lineTo(x,y):c.moveTo(x,y)}
+  c.strokeStyle="#69dff4";c.lineWidth=3;c.stroke()}
+ else{c.beginPath();c.moveTo(cx-95,cy+260);c.lineTo(cx+95,cy+260);c.strokeStyle="#173d49";c.lineWidth=2;c.stroke()}
+ requestAnimationFrame(draw)}
+draw();
+</script>
 </body>
 </html>
