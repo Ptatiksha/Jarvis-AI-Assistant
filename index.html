@@ -107,7 +107,8 @@ function listen(ms,lim){return new Promise(res=>{
  waiter=t=>fin(t,1);if(!SR)return;
  rec=new SR();rec.lang="en-IN";
  rec.onresult=e=>fin(e.results[0][0].transcript.trim());
- rec.onerror=e=>{if(/not-allowed|service/.test(e.error)&&!denied){denied=1;log("SYSTEM","Mic permission nahi mili. Address bar me mic allow karo, ya neeche type karke use karo.")}fin("")};
+ rec.onerror=e=>{if(/not-allowed|service/.test(e.error)&&!denied){denied=1;log("SYSTEM","Mic permission nahi mili. Address bar me mic allow karo, ya neeche type karke use karo.")}
+  else if(!/no-speech|aborted|not-allowed|service/.test(e.error)){const E=listen.e||(listen.e={});if(!E[e.error]){E[e.error]=1;log("SYSTEM","Voice recognition error: "+e.error+". Chrome ya Edge (normal window) me kholo, Brave/in-app browser me mic kaam nahi karta. Neeche type bhi kar sakte ho.")}}fin("")};
  rec.onend=()=>fin("");
  z=setTimeout(()=>fin(""),ms+lim);listening=true;try{rec.start()}catch{fin("")}})}
 async function ask(p,ms=8,lim=12){await speak(p);await sleep(250);status("LISTENING","Aapka answer sun raha hoon...");
@@ -121,8 +122,8 @@ async function ai(question){
  if(!KEY)return "Groq API key set nahi hai. Upar API key button se key daalo.";
  try{msgs.push({role:"user",content:question});
   const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+KEY},
-   body:JSON.stringify({model:"openai/gpt-oss-120b",messages:msgs,temperature:.45,max_tokens:240})});
-  const rep=((await r.json()).choices?.[0]?.message?.content||"").trim();
+   body:JSON.stringify({model:"openai/gpt-oss-120b",messages:msgs,temperature:.45,max_tokens:240,reasoning_effort:"low"})});
+  const j=await r.json();if(j.error)return "Groq error: "+String(j.error.message||"").slice(0,140);const rep=(j.choices?.[0]?.message?.content||"").trim();
   if(!rep)return "Mujhe iska answer nahi mila.";
   msgs.push({role:"assistant",content:rep});
   if(msgs.length>17)msgs=[msgs[0],...msgs.slice(-14)];
@@ -145,7 +146,10 @@ function mood(t){
 /* ---------- COMMANDS ---------- */
 const clean=t=>t.toLowerCase().trim().replace(/\s+/g," ").replace(/^jarvis[\s,]*/,"").trim();
 const has=(t,...a)=>a.some(x=>t.includes(x)),is=(t,...a)=>a.includes(t);
-const go=u=>{if(!window.open(u,"_blank"))log("SYSTEM","Popup block hua. Site settings me popups allow karo: "+u)};
+const go=u=>{if(window.open(u,"_blank"))return;const d=document.createElement("div");d.className="m";
+ d.innerHTML='<b>SYSTEM</b><p>Popup block hua. Is link par tap karo: <a target="_blank" rel="noopener" style="color:#5bd8f4;word-break:break-all"></a></p>';
+ const a=d.querySelector("a");a.href=u;a.textContent=u.length>70?u.slice(0,70)+"…":u;$("#chat").append(d);$("#chat").scrollTop=1e9;
+ speak("Popup block ho gaya. Chat mein link par tap karo, ya address bar se popups allow karo.")};
 const SITES={youtube:"https://www.youtube.com",whatsapp:"https://web.whatsapp.com","whatsapp web":"https://web.whatsapp.com",instagram:"https://www.instagram.com",insta:"https://www.instagram.com",
  chrome:"https://www.google.com",browser:"https://www.google.com",gmail:"https://mail.google.com",maps:"https://maps.google.com","vs code":"https://vscode.dev",
  word:"https://www.office.com/launch/word",spotify:"https://open.spotify.com",drive:"https://drive.google.com",calendar:"https://calendar.google.com"};
@@ -165,7 +169,7 @@ function alarm(h,m){speak(`${h}:${String(m).padStart(2,"0")} ka alarm set ho gay
 const digits=x=>(x||"").replace(/[^+\d]/g,"").replace(/^\+/,"");
 const dl=(u,n)=>{const a=document.createElement("a");a.href=u;a.download=n;a.click()};
 const gq=async(p,mt,tp)=>{const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+KEY},
- body:JSON.stringify({model:"openai/gpt-oss-120b",messages:[{role:"user",content:p}],temperature:tp,max_tokens:mt})});return((await r.json()).choices?.[0]?.message?.content||"").trim()};
+ body:JSON.stringify({model:"openai/gpt-oss-120b",messages:[{role:"user",content:p}],temperature:tp,max_tokens:mt,reasoning_effort:"low"})});return((await r.json()).choices?.[0]?.message?.content||"").trim()};
 async function wa(c0){
  const c=(c0||"").trim()||await ask("Kisko WhatsApp message bhejna hai? Contact ka naam bolo.",8,6);
  if(!c){await speak("Contact naam sunai nahi diya. WhatsApp message cancel kar diya.");return}
@@ -332,7 +336,6 @@ $("#f").onsubmit=e=>{e.preventDefault();const v=$("#txt").value.trim();$("#txt")
  waiter?waiter(v):q.push(v)};
 $("#keybtn").onclick=()=>{const k=prompt("Groq API key (sirf is browser me save hogi):",KEY);if(k!==null){KEY=k.trim();localStorage.jarvisKey=KEY}};
 $("#go").onclick=()=>{KEY=$("#k").value.trim()||KEY;localStorage.jarvisKey=KEY;$("#start").remove();
- speechSynthesis.speak(new SpeechSynthesisUtterance(""));
  log("SYSTEM","Ready. Say ‘Hello Jarvis’ to start.");
  if(!KEY)log("SYSTEM","AI answers ke liye upar API key button se Groq key daalo.");
  if(!SR)log("SYSTEM","Is browser me voice recognition nahi hai. Chrome ya Edge use karo; abhi type karke chala sakte ho.");
@@ -370,3 +373,4 @@ draw();
 </script>
 </body>
 </html>
+ 
