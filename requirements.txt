@@ -1,0 +1,15 @@
+edge-tts
+pygame
+SpeechRecognition
+PyAudio
+pyautogui
+pyperclip
+psutil
+pywhatkit
+fpdf2
+openai
+requests
+selenium
+customtkinter
+pygetwindow
+screen-brightness-control
