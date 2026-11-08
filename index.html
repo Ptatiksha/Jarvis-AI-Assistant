@@ -59,9 +59,10 @@ footer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;b
 <div id="start"><div>
  <h1>J A R V I S</h1>
  <p>Microphone permission allow karna. Exact Jarvis voice (Madhur / Prabhat) ke liye Microsoft Edge me kholo.</p>
- <label for="k" style="font-size:13px">Groq API key (sirf is browser me save hoti hai)</label>
+ <label for="k" style="font-size:13px">Login: apni Groq API key paste karo (sirf is browser me save hoti hai, agli baar dobara nahi poochega)</label>
  <input id="k" type="password" placeholder="gsk_..." autocomplete="off">
- <button id="go">Start Jarvis</button>
+ <p id="kerr" style="color:#ff8a80;display:none">Pehle Groq API key paste karo (gsk_ se shuru hoti hai).</p>
+ <button id="go">Login &amp; Start Jarvis</button>
 </div></div>
  
 <script>
@@ -144,7 +145,7 @@ function mood(t){
  for(const k in L)if(L[k].some(x=>t.includes(x)))return R[k]}
  
 /* ---------- COMMANDS ---------- */
-const clean=t=>t.toLowerCase().trim().replace(/\s+/g," ").replace(/^jarvis[\s,]*/,"").trim();
+const clean=t=>t.toLowerCase().trim().replace(/\s+/g," ").replace(/^jarvis[\s,]*/,"").replace(/[\s.,!?।]+$/,"").trim();
 const has=(t,...a)=>a.some(x=>t.includes(x)),is=(t,...a)=>a.includes(t);
 const go=u=>{if(window.open(u,"_blank"))return;const d=document.createElement("div");d.className="m";
  d.innerHTML='<b>SYSTEM</b><p>Popup block hua. Is link par tap karo: <a target="_blank" rel="noopener" style="color:#5bd8f4;word-break:break-all"></a></p>';
@@ -335,7 +336,8 @@ $("#f").onsubmit=e=>{e.preventDefault();const v=$("#txt").value.trim();$("#txt")
  if(privacy){log("SYSTEM","Privacy mode on hai. Ctrl+Alt+J ya Unlock dabao.");return}
  waiter?waiter(v):q.push(v)};
 $("#keybtn").onclick=()=>{const k=prompt("Groq API key (sirf is browser me save hogi):",KEY);if(k!==null){KEY=k.trim();localStorage.jarvisKey=KEY}};
-$("#go").onclick=()=>{KEY=$("#k").value.trim()||KEY;localStorage.jarvisKey=KEY;$("#start").remove();
+$("#k").value=KEY;$("#k").addEventListener("keydown",e=>{if(e.key=="Enter")$("#go").click()});
+$("#go").onclick=()=>{KEY=$("#k").value.trim();if(!KEY){$("#kerr").style.display="block";return}localStorage.jarvisKey=KEY;$("#start").remove();
  log("SYSTEM","Ready. Say ‘Hello Jarvis’ to start.");
  if(!KEY)log("SYSTEM","AI answers ke liye upar API key button se Groq key daalo.");
  if(!SR)log("SYSTEM","Is browser me voice recognition nahi hai. Chrome ya Edge use karo; abhi type karke chala sakte ho.");
