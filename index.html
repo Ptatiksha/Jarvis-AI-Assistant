@@ -155,8 +155,17 @@ const SITES={youtube:"https://www.youtube.com",whatsapp:"https://web.whatsapp.co
  chrome:"https://www.google.com",browser:"https://www.google.com",gmail:"https://mail.google.com",maps:"https://maps.google.com","vs code":"https://vscode.dev",
  word:"https://www.office.com/launch/word",spotify:"https://open.spotify.com",drive:"https://drive.google.com",calendar:"https://calendar.google.com"};
 const NOWEB=/file explorer|\bcmd\b|command prompt|volume|aawaz|\bawaz\b|\bmute\b|minimize|lock (laptop|screen)|laptop lock|window (band|close)|close window|^type karo|\benter\b|backspace|brightness|wi-?fi|bluetooth|clipboard|startup|file dhundo|folder dhundo|\bram\b|storage|disk usage|pc info|\bcpu\b|system status/;
+async function ytId(q){
+ let hosts=[];try{hosts=(await(await fetch("https://piped-instances.kavin.rocks/",{signal:AbortSignal.timeout(5000)})).json()).map(x=>x.api_url).filter(Boolean).slice(0,5)}catch{}
+ for(const h of[...new Set([...hosts,"https://pipedapi.kavin.rocks"])]){try{const j=await(await fetch(`${h}/search?q=${encodeURIComponent(q)}&filter=videos`,{signal:AbortSignal.timeout(6000)})).json(),u=(j.items||[]).find(i=>(i.url||"").includes("v="))?.url;if(u)return u.split("v=")[1].split("&")[0]}catch{}}
+ for(const h of["https://inv.nadeko.net","https://yewtu.be"]){try{const j=await(await fetch(`${h}/api/v1/search?q=${encodeURIComponent(q)}&type=video`,{signal:AbortSignal.timeout(6000)})).json();if(j[0]&&j[0].videoId)return j[0].videoId}catch{}}
+ return ""}
+function player(id){const o=$("#ytp");if(o)o.remove();const d=document.createElement("div"),f=document.createElement("iframe");d.className="m";d.id="ytp";d.innerHTML="<b>JARVIS • VIDEO</b><br>";
+ f.src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;f.allow="autoplay; encrypted-media; picture-in-picture";f.allowFullscreen=true;f.style.cssText="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:6px";
+ d.append(f);$("#chat").append(d);$("#chat").scrollTop=1e9}
 async function yt(query){query=query||await ask("YouTube par kya search ya play karna hai?");if(!query)return;
- await speak(`YouTube par ${query} search karke play kar raha hoon.`);go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}
+ await speak(`YouTube par ${query} dhoondh raha hoon.`);const id=await ytId(query);
+ if(id){player(id);await speak("Video play kar raha hoon.")}else{await speak("Direct video nahi mila, YouTube search khol raha hoon.");go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}}
 async function weather(t){
  let p=t.replace(/\b(aaj|kal|weather|mausam|kaisa|kaisi|hai|batao|tomorrow|today|in)\b/gi," ").replace(/\s+/g," ").trim();
  if(!p)p=await ask("Kis city ka weather chahiye?");if(!p)return;
@@ -227,6 +236,8 @@ async function proc(o){
  if(is(t,"jarvis unlock","unlock jarvis","session unlock","unlock session")){await speak("Security ke liye session voice se unlock nahi hoga. Control Alt J locally press kijiye.");return 1}
  if(/\b(password|passcode|otp|one time password|api key|apikey|secret key|token|pin|cvv)\b/.test(ol)){await speak("Security ke liye password, OTP, PIN ya API key ko main repeat ya memory mein save nahi karunga.");return 1}
  if(locked&&!has(t,"time","date","battery","who are you","tum kaun ho")){await speak("Jarvis session locked hai. Sensitive commands abhi disabled hain.");return 1}
+ 
+ if(is(t,"video band karo","stop video","video band","video stop","video close")){const o=$("#ytp");if(o)o.remove();await speak("Video band kar diya.");return 1}
  if(is(t,"bye","bye bye","goodbye","good night","stop","stop jarvis","so jao","so ja","jarvis so jao","sleep","sleep jarvis","band ho jao","jarvis band karo")){
   await speak("Okay, main sleep mode mein ja raha hoon. Hello Jarvis ya uth jao bolkar mujhe wapas jaga sakte ho.");return"sleep"}
  if(is(t,"exit","exit jarvis","close jarvis","quit jarvis")){await speak("Okay, Jarvis completely band kar raha hoon. Bye.");return false}
@@ -309,6 +320,8 @@ async function proc(o){
  if(has(t,"battery","charging")){try{const b=await navigator.getBattery();await speak(`Battery ${Math.round(b.level*100)} percent hai. Device ${b.charging?"charging par laga hai":"charging par nahi hai"}.`)}
   catch{await speak("Is browser me battery status check nahi ho paya.")}return 1}
  
+ 
+ if(has(t,"youtube")&&has(t,"search","play","chalao","bajao","dikhao")){const k=t.replace(/\b(youtube|par|pe|per|mein|me|search|karo|kar|play|aur|uska|uski|chalao|bajao|dikhao|ye|yeh)\b/g," ").replace(/\s+/g," ").trim();await yt(k||null);return 1}
  if(has(t,"google par","google pe","google mein","google me","search karo","dhoondho","dhundo")||t.startsWith("search ")||t.startsWith("google ")){
   if(await conf(`web par search karunga: ${o}`)){let k=t;for(const w of["jarvis","google par","google pe","google mein","google me","google","search karo","search kar","search","dhoondho","dhundo","find"])k=k.split(w).join(" ");
    k=k.replace(/\s+/g," ").trim();if(!k)await speak("Google par kya search karna hai?");else{await speak(`${k} search kar raha hoon.`);go("https://www.google.com/search?q="+encodeURIComponent(k))}}return 1}
