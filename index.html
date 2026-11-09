@@ -154,7 +154,7 @@ const go=u=>{if(window.open(u,"_blank"))return;const d=document.createElement("d
 const SITES={youtube:"https://www.youtube.com",whatsapp:"https://web.whatsapp.com","whatsapp web":"https://web.whatsapp.com",instagram:"https://www.instagram.com",insta:"https://www.instagram.com",
  chrome:"https://www.google.com",browser:"https://www.google.com",gmail:"https://mail.google.com",maps:"https://maps.google.com","vs code":"https://vscode.dev",
  word:"https://www.office.com/launch/word",spotify:"https://open.spotify.com",drive:"https://drive.google.com",calendar:"https://calendar.google.com"};
-const NOWEB=/notepad|\bpaint\b|camera|\bsettings?\b|file explorer|\bcmd\b|command prompt|volume|aawaz|\bawaz\b|\bmute\b|minimize|lock (laptop|screen)|laptop lock|window (band|close)|close window|^type karo|\benter\b|backspace|brightness|wi-?fi|bluetooth|clipboard|startup|file dhundo|folder dhundo|\bram\b|storage|disk usage|pc info|\bcpu\b|system status/;
+const NOWEB=/file explorer|\bcmd\b|command prompt|volume|aawaz|\bawaz\b|\bmute\b|minimize|lock (laptop|screen)|laptop lock|window (band|close)|close window|^type karo|\benter\b|backspace|brightness|wi-?fi|bluetooth|clipboard|startup|file dhundo|folder dhundo|\bram\b|storage|disk usage|pc info|\bcpu\b|system status/;
 async function yt(query){query=query||await ask("YouTube par kya search ya play karna hai?");if(!query)return;
  await speak(`YouTube par ${query} search karke play kar raha hoon.`);go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}
 async function weather(t){
@@ -197,6 +197,29 @@ async function img(k){await speak(`${k} ki image bana raha hoon.`);try{
  u="https://image.pollinations.ai/prompt/"+encodeURIComponent(e)+"?width=1024&height=1024&nologo=true",d=document.createElement("div");d.className="m";
  d.innerHTML='<b>JARVIS</b><p><a target="_blank" style="color:#5bd8f4">Image open / save karo</a></p><img alt="Generated image" style="max-width:100%;border-radius:8px;margin-top:6px">';
  d.querySelector("a").href=u;d.querySelector("img").src=u;$("#chat").append(d);$("#chat").scrollTop=1e9;await speak("Image ready hai.")}catch{await speak("Image banane mein problem aayi.")}}
+const APPS={edge:["","https://www.bing.com"],word:["ms-word:","https://www.office.com/launch/word"],excel:["ms-excel:","https://www.office.com/launch/excel"],
+ powerpoint:["ms-powerpoint:","https://www.office.com/launch/powerpoint"],outlook:["ms-outlook:","https://outlook.live.com"],onenote:["onenote:","https://www.onenote.com"],
+ teams:["msteams:","https://teams.microsoft.com"],calculator:["calculator:","https://www.google.com/search?q=calculator"],settings:["ms-settings:",""],
+ camera:["microsoft.windows.camera:",""],paint:["ms-paint:","https://jspaint.app"],notepad:["","https://anotepad.com"],photos:["ms-photos:","https://photos.google.com"],
+ clock:["ms-clock:","https://time.is"],store:["ms-windows-store:","https://apps.microsoft.com"],maps:["bingmaps:","https://maps.google.com"],weather:["msnweather:","https://www.msn.com/weather"],
+ snipping:["ms-screenclip:",""],todo:["ms-todo:","https://to-do.live.com"],whatsapp:["whatsapp:","https://web.whatsapp.com"],spotify:["spotify:","https://open.spotify.com"],
+ discord:["discord:","https://discord.com/app"],telegram:["tg:","https://web.telegram.org"],zoom:["zoommtg:","https://zoom.us/join"],slack:["slack:","https://app.slack.com"],
+ "vs code":["vscode:","https://vscode.dev"],steam:["steam:","https://store.steampowered.com"],skype:["skype:","https://web.skype.com"]};
+const ALIAS={"microsoft edge":"edge",browser:"edge",chrome:"edge",setting:"settings",calc:"calculator",ppt:"powerpoint","power point":"powerpoint",vscode:"vs code","visual studio code":"vs code","snipping tool":"snipping","microsoft store":"store","ms store":"store","to do":"todo"};
+const appKey=n=>{n=(n||"").replace(/^(microsoft|ms|windows)\s+/,"").replace(/\s+app$/,"").trim();n=ALIAS[n]||n;return APPS[n]?n:""};
+function linkMsg(t,ls){const d=document.createElement("div"),p=document.createElement("p");d.className="m";d.innerHTML="<b>SYSTEM</b>";p.append(t+" ");
+ for(const[l,u]of ls){const a=document.createElement("a");a.href=u;if(/^https?:/.test(u)){a.target="_blank";a.rel="noopener"}a.textContent=l;a.style.cssText="color:#5bd8f4;margin-right:12px";p.append(a)}
+ d.append(p);$("#chat").append(d);$("#chat").scrollTop=1e9}
+async function openApp(raw){
+ const k=appKey(raw),[pr,web]=k?APPS[k]:["",""],name=k||raw;
+ if(!k){await speak(`${name} laptop app list mein nahi hai. Edge mein search karke online khol raha hoon.`);go("https://www.bing.com/search?q="+encodeURIComponent(name+" official website"));return}
+ await speak(`${name} open kar raha hoon.`);
+ if(!pr){go(web);return}
+ let hit=0;const mark=()=>{hit=1};addEventListener("blur",mark,{once:true});document.addEventListener("visibilitychange",mark,{once:true});
+ const f=document.createElement("iframe");f.style.display="none";f.src=pr;document.body.append(f);
+ await sleep(2500);removeEventListener("blur",mark);f.remove();
+ if(!hit){linkMsg(`${name} apne aap nahi khula. Installed ho to tap karo:`,[[`${name} kholo`,pr]]);
+  if(web){await speak(`${name} laptop par nahi mila ya block hua, isliye online version khol raha hoon.`);go(web)}else await speak(`${name} ke liye chat mein link par tap karo.`)}}
 async function proc(o){
  const t=clean(o),ol=o.toLowerCase();last=Date.now();
  if(is(t,"privacy mode","privacy mode on","privacy on","mic off","microphone off")){await speak("Privacy mode on. Microphone listening ab completely disabled hai. Wapas wake mode mein aane ke liye Control Alt J press kijiye.");privacy=true;return"privacy"}
@@ -268,7 +291,6 @@ async function proc(o){
  if(has(t,"text file banao","python file banao")){const py=t.includes("python"),k=t.replace(/\b(text|python|file|banao|bana do|ki|ka)\b/g," ").replace(/\s+/g," ").trim()||"Jarvis notes";
   if(await conf(`${k} ki file banaunga`)){const c=await ai(`Write ${py?"Python code":"clear notes"} for: ${k}. Return only the file content.`);
    dl("data:text/plain;charset=utf-8,"+encodeURIComponent(c),(k.replace(/[^A-Za-z0-9_-]+/g,"_").slice(0,40)||"jarvis_file")+(py?".py":".txt"));await speak("File bana di hai aur download ho gayi.")}return 1}
- if(is(t,"calculator","calculator kholo","calc","calc kholo","open calculator","open calc")){if(await conf("Calculator open karunga"))go("https://www.google.com/search?q=calculator");return 1}
  if(has(t,"screenshot","screen shot")){await shot();return 1}
  
  if(NOWEB.test(t)&&!/\balarm\b|\btimer\b/.test(t)){await speak("Ye feature sirf Windows desktop wale Jarvis me kaam karta hai, browser version me nahi.");return 1}
@@ -296,10 +318,10 @@ async function proc(o){
   const k=t.replace(/\s+(song |gaana |gana )?(bajao|baja do|chalao|chala do)$/,"").trim();
   if(await conf(`YouTube par ${k||"requested media"} search ya play karunga`))await yt(k||null);return 1}
  const nm=t.replace(/^open\s+/,"").replace(/\s+kholo$/,"").trim();
- if(nm&&(t.startsWith("open ")||t.endsWith(" kholo")||SITES[t])){
-  if(nm=="youtube"){if(await conf("YouTube open karunga"))await yt();return 1}
-  if(SITES[nm]){if(await conf(`${nm} open karunga`)){await speak(`${nm} open kar raha hoon.`);go(SITES[nm])}return 1}
-  if(await conf(`${nm} ko web par search karke open karunga`)){go("https://www.google.com/search?q="+encodeURIComponent(nm));await speak(`${nm} ka web search open kar diya.`)}return 1}
+ if(nm&&(t.startsWith("open ")||t.endsWith(" kholo")||SITES[t]||appKey(t))){
+  if(nm=="youtube"){await yt();return 1}
+  if(appKey(nm)||!SITES[nm]){await openApp(nm);return 1}
+  await speak(`${nm} open kar raha hoon.`);go(SITES[nm]);return 1}
  
  status("THINKING","Processing command...");
  if(!KEY){const m=mood(clean(o));if(m){await speak(m);return 1}}
@@ -375,4 +397,3 @@ draw();
 </script>
 </body>
 </html>
- 
