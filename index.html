@@ -64,17 +64,17 @@ footer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;b
  <p id="kerr" style="color:#ff8a80;display:none">Pehle Groq API key paste karo (gsk_ se shuru hoti hai).</p>
  <button id="go">Login &amp; Start Jarvis</button>
 </div></div>
- 
+
 <script>
 const SYS="Tumhara naam Jarvis hai. Tum ek smart, calm, friendly aur natural AI voice assistant ho. Robotic ya template jaisa mat bolo; context ke hisab se natural conversational phrasing use karo. Har reply ko greeting se start mat karo aur user ki baat ko unnecessarily repeat mat karo. Agar simple acknowledgement enough ho to seedha short acknowledgement do. User confused ho to simple step-by-step explain karo. User se natural human assistant ki tarah baat karo. Reply user ki language ke according karo. English question ka English mein answer do. Hindi question ka Hindi mein answer do. Hinglish question ka natural Hinglish mein answer do. Marathi question ka Marathi mein answer do. Normal answers short, clear and conversational rakho. Usually 2 se 4 sentences mein answer do. Study ya programming question mein zarurat ho to properly explain karo. Calculations ka exact answer do. Response voice mein bola jayega, isliye natural spoken sentences use karo. Unnecessary markdown, stars, hashes aur headings mat use karo. Agar user follow-up question pooche to recent conversation context ka use karo. Agar context insufficient ho to guess karne ke bajay clarification maango. Sensitive actions kabhi user confirmation ke bina execute karne ko mat kaho. MOOD-AWARE CONVERSATION: User ke words aur context se unka possible mood samjho, lekin certainty ka claim mat karo. Agar user gusse mein lage, calmly acknowledge karo, argue ya lecture mat karo, aur poochho kya hua ya kis tarah help karun. Agar user sad, lonely, disappointed ya upset lage, pehle empathy dikhao, unki feeling ko dismiss mat karo, aur gently poochho woh share karna chahte hain ya distraction chahte hain. Agar user happy ya excited ho, unki energy ko naturally match karo aur poochho kya achha hua; overdo mat karo. Agar user bimar ya pain mein hone ki baat kare, caring response do, simple safe suggestion do, diagnosis ya medicine prescribe mat karo; severe/unusual symptoms mein trusted adult/medical professional ko batane ko kaho. Agar user tired/stressed/confused ho, short supportive reply aur ek manageable next step do. Agar mood clear na ho, assume mat karo; normal friendly response do. Agar user apne mood ke saath koi task bhi bole, dono ka dhyan rakho: pehle brief caring acknowledgement, phir task ko handle karo. Mood ko user ke against use mat karo, unki feeling ka mazaak mat banao, aur baar-baar mood label mat karo.";
- 
+
 const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const LS=(k,d)=>{try{return JSON.parse(localStorage[k])||d}catch{return d}},SV=(k,v)=>{localStorage[k]=JSON.stringify(v)};
 let KEY=localStorage.jarvisKey||"",msgs=[{role:"system",content:SYS}],awake=false,privacy=false,locked=false,
-    last=Date.now(),state="SLEEPING",waiter=null,q=[],bgq=[],listening=false,running=false,denied=false,phase=0;
- 
+    last=Date.now(),state="SLEEPING",waiter=null,q=[],bgq=[],listening=false,running=false,denied=false,phase=0,bridgeUp=false,agentBusy=false;
+
 /* ---------- UI ---------- */
-function sec(){$("#sec").textContent=`MIC: ${privacy?"OFF":awake?"ACTIVE":"WAKE ONLY"}  •  SESSION: ${locked?"LOCKED":"UNLOCKED"}`}
+function sec(){$("#sec").textContent=`MIC: ${privacy?"OFF":awake?"ACTIVE":"WAKE ONLY"}  •  SESSION: ${locked?"LOCKED":"UNLOCKED"}  •  LAPTOP LINK: ${bridgeUp?"CONNECTED":"OFF"}`}
 function status(s,d){state=s;$("#st").textContent=s;
  $("#dt").textContent=d||({SLEEPING:"Say ‘Hello Jarvis’ when you need me",LISTENING:"I’m listening…",THINKING:"One moment…",SPEAKING:"Here’s what I found",READY:"Ready when you are"}[s]||"");sec()}
 function log(role,t){const d=document.createElement("div");d.className="m";
@@ -82,7 +82,7 @@ function log(role,t){const d=document.createElement("div");d.className="m";
  const i=document.createElement("i");i.textContent=new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
  d.firstChild.append(i);d.lastChild.textContent=t;$("#chat").append(d);$("#chat").scrollTop=1e9}
 setInterval(()=>$("#clock").textContent=new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true}),1000);
- 
+
 /* ---------- VOICE: same voices (Edge TTS names) + rate +12% ---------- */
 let voices=[];const lv=()=>voices=speechSynthesis.getVoices();lv();speechSynthesis.onvoiceschanged=lv;
 const pick=h=>voices.find(v=>v.name.includes(h?"Madhur":"Prabhat"))||voices.find(v=>v.lang.replace("_","-")==(h?"hi-IN":"en-IN"));
@@ -98,7 +98,7 @@ function talk(raw){
   const z=setTimeout(r,s.length*130+4000);u.onend=u.onerror=()=>{clearTimeout(z);r()};speechSynthesis.speak(u)})),Promise.resolve()).then(()=>sleep(300));
 }
 const bg=t=>listening?bgq.push(t):speak(t);
- 
+
 /* ---------- LISTEN: Google speech recognition, en-IN (same as py) ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function listen(ms,lim){return new Promise(res=>{
@@ -117,7 +117,7 @@ async function ask(p,ms=8,lim=12){await speak(p);await sleep(250);status("LISTEN
 const NO=["no","nope","nah","nahi","nahin","nhi","cancel","mat karo","mat bhejo","rehne do","chhodo","chod do","नहीं","मत भेजो","कैंसल"],
       YES=["yes","yeah","yup","haan","ha","haa","han","send karo","confirm","okay","ok","sure","kar do","bhejo","हाँ","हा","भेजो","कन्फर्म"];
 async function conf(d){return true}
- 
+
 /* ---------- AI (Groq, same model + memory) ---------- */
 async function ai(question){
  if(!KEY)return "Groq API key set nahi hai. Upar API key button se key daalo.";
@@ -143,18 +143,18 @@ function mood(t){
  tired:"Lagta hai tum kaafi thak ya stress feel kar rahi ho. Agar possible ho toh thoda break aur paani le lo. Chaho toh hum ek chhota sa next step saath mein decide kar sakte hain.",
  conf:"Koi baat nahi, ek-ek step karke dekhte hain. Tum mujhe situation thodi si batao; main options simple karke samjha dunga."};
  for(const k in L)if(L[k].some(x=>t.includes(x)))return R[k]}
- 
+
 /* ---------- COMMANDS ---------- */
 const clean=t=>t.toLowerCase().trim().replace(/\s+/g," ").replace(/^jarvis[\s,]*/,"").replace(/[\s.,!?।]+$/,"").trim();
 const has=(t,...a)=>a.some(x=>t.includes(x)),is=(t,...a)=>a.includes(t);
-const go=u=>{if(window.open(u,"_blank"))return;const d=document.createElement("div");d.className="m";
+const go=u=>{if(bridgeUp){br("open_url",{url:u});return}if(window.open(u,"_blank"))return;const d=document.createElement("div");d.className="m";
  d.innerHTML='<b>SYSTEM</b><p>Popup block hua. Is link par tap karo: <a target="_blank" rel="noopener" style="color:#5bd8f4;word-break:break-all"></a></p>';
  const a=d.querySelector("a");a.href=u;a.textContent=u.length>70?u.slice(0,70)+"…":u;$("#chat").append(d);$("#chat").scrollTop=1e9;
  speak("Popup block ho gaya. Chat mein link par tap karo, ya address bar se popups allow karo.")};
 const SITES={youtube:"https://www.youtube.com",whatsapp:"https://web.whatsapp.com","whatsapp web":"https://web.whatsapp.com",instagram:"https://www.instagram.com",insta:"https://www.instagram.com",
  chrome:"https://www.google.com",browser:"https://www.google.com",gmail:"https://mail.google.com",maps:"https://maps.google.com","vs code":"https://vscode.dev",
  word:"https://www.office.com/launch/word",spotify:"https://open.spotify.com",drive:"https://drive.google.com",calendar:"https://calendar.google.com"};
-const NOWEB=/file explorer|\bcmd\b|command prompt|volume|aawaz|\bawaz\b|\bmute\b|minimize|lock (laptop|screen)|laptop lock|window (band|close)|close window|^type karo|\benter\b|backspace|brightness|wi-?fi|bluetooth|clipboard|startup|file dhundo|folder dhundo|\bram\b|storage|disk usage|pc info|\bcpu\b|system status/;
+const NOWEB=/file explorer|cmd|command prompt|wi-?fi|bluetooth|clipboard|startup|ram|storage|disk usage|pc info|cpu|system status/;
 async function ytId(q){
  let hosts=[];try{hosts=(await(await fetch("https://piped-instances.kavin.rocks/",{signal:AbortSignal.timeout(5000)})).json()).map(x=>x.api_url).filter(Boolean).slice(0,5)}catch{}
  for(const h of[...new Set([...hosts,"https://pipedapi.kavin.rocks"])]){try{const j=await(await fetch(`${h}/search?q=${encodeURIComponent(q)}&filter=videos`,{signal:AbortSignal.timeout(6000)})).json(),u=(j.items||[]).find(i=>(i.url||"").includes("v="))?.url;if(u)return u.split("v=")[1].split("&")[0]}catch{}}
@@ -165,7 +165,7 @@ function player(id){const o=$("#ytp");if(o)o.remove();const d=document.createEle
  d.append(f);$("#chat").append(d);$("#chat").scrollTop=1e9}
 async function yt(query){query=query||await ask("YouTube par kya search ya play karna hai?");if(!query)return;
  await speak(`YouTube par ${query} dhoondh raha hoon.`);const id=await ytId(query);
- if(id){player(id);await speak("Video play kar raha hoon.")}else{await speak("Direct video nahi mila, YouTube search khol raha hoon.");go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}}
+ if(id){player(id);await speak("Video play kar raha hoon.")}else{const r=await br("youtube_play",{query});if(r&&r.ok)await speak("Video play kar raha hoon.");else{await speak("Direct video nahi mila, YouTube search khol raha hoon.");go("https://www.youtube.com/results?search_query="+encodeURIComponent(query))}}}
 async function weather(t){
  let p=t.replace(/\b(aaj|kal|weather|mausam|kaisa|kaisi|hai|batao|tomorrow|today|in)\b/gi," ").replace(/\s+/g," ").trim();
  if(!p)p=await ask("Kis city ka weather chahiye?");if(!p)return;
@@ -175,7 +175,7 @@ async function weather(t){
  }catch(e){await speak("Weather check nahi ho paya.")}}
 function alarm(h,m){speak(`${h}:${String(m).padStart(2,"0")} ka alarm set ho gaya hai.`);
  const iv=setInterval(()=>{const n=new Date();if(n.getHours()==h&&n.getMinutes()==m){clearInterval(iv);for(let i=0;i<4;i++)bg("Alarm ka time ho gaya hai.")}},10000)}
- 
+
 const digits=x=>(x||"").replace(/[^+\d]/g,"").replace(/^\+/,"");
 const dl=(u,n)=>{const a=document.createElement("a");a.href=u;a.download=n;a.click()};
 const gq=async(p,mt,tp)=>{const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+KEY},
@@ -221,6 +221,9 @@ function linkMsg(t,ls){const d=document.createElement("div"),p=document.createEl
  d.append(p);$("#chat").append(d);$("#chat").scrollTop=1e9}
 async function openApp(raw){
  const k=appKey(raw),[pr,web]=k?APPS[k]:["",""],name=k||raw;
+ const lr=await br("open_app",{name:raw});
+ if(lr&&lr.ok){if(lr.found){await speak(`${lr.name||name} open kar diya.`);return}
+  await speak(`${name} laptop mein nahi mila. Online search karke open kar raha hoon.`);go("https://www.google.com/search?btnI=1&q="+encodeURIComponent(name+" official site"));return}
  if(!k){await speak(`${name} laptop app list mein nahi hai. Edge mein search karke online khol raha hoon.`);go("https://www.bing.com/search?q="+encodeURIComponent(name+" official website"));return}
  await speak(`${name} open kar raha hoon.`);
  if(!pr){go(web);return}
@@ -229,6 +232,34 @@ async function openApp(raw){
  await sleep(2500);removeEventListener("blur",mark);f.remove();
  if(!hit){linkMsg(`${name} apne aap nahi khula. Installed ho to tap karo:`,[[`${name} kholo`,pr]]);
   if(web){await speak(`${name} laptop par nahi mila ya block hua, isliye online version khol raha hoon.`);go(web)}else await speak(`${name} ke liye chat mein link par tap karo.`)}}
+/* ---------- Laptop link (Jarvis Bridge) + AI agent ---------- */
+const BR="http://127.0.0.1:8765";
+async function br(action,data={}){try{const r=await fetch(BR+"/do",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,...data}),signal:AbortSignal.timeout(90000)});const j=await r.json();bridgeUp=true;return j}catch{bridgeUp=false;return null}}
+async function ping(){try{bridgeUp=(await fetch(BR+"/ping",{signal:AbortSignal.timeout(2500)})).ok}catch{bridgeUp=false}sec()}
+setInterval(ping,5000);
+async function lap(a,d,ok){const r=await br(a,d);
+ if(!r){await speak("Laptop link chalu nahi hai. Pehle Jarvis Bridge program laptop par chalao.");return null}
+ if(!r.ok){await speak(r.error||"Ye kaam nahi ho paya.");return null}
+ if(ok)await speak(typeof ok=="function"?ok(r):ok);return r}
+function waParse(o){const t=o.trim().replace(/^jarvis[\s,]*/i,"").replace(/[.!?\s]+$/,"");
+ const m=t.match(/(?:whatsapp\s+(?:par|pe|per)\s+)?(.+?)\s+ko\s+(?:whatsapp\s+(?:par|pe|per)\s+)?(?:(?:message|msg)\s+)?(.+?)\s+(?:bhejo|bhej do|bhej de|send karo|send kar do|bol do|likh do)$/i);if(!m)return null;
+ const c=m[1].replace(/\b(whatsapp|par|pe|per)\b/gi," ").replace(/\s+/g," ").trim(),g=m[2].trim();
+ if(!c||!g||/^(message|msg|whatsapp message|whatsapp msg|whatsapp|ek message|koi message)$/i.test(g)||/^(file|pdf|photo|image|screenshot|document)/i.test(g))return null;return[c,g]}
+async function agent(o){
+ if(!KEY||agentBusy||!/(karo|kar do|kholo|bhejo|bhej|lagao|badhao|badao|kam|play|open|send|search|dhundo|dhoondho|chalao|le lo)/i.test(o))return 0;
+ agentBusy=true;
+ try{const sys='You are Jarvis task planner. Understand English, Hindi, Hinglish. Return ONLY JSON: {"intent":"plan or answer","steps":[{"action":"...","query":"..."}]}. Allowed actions: web_search, youtube_play, open_app, find_file, screenshot, volume_up, volume_down, brightness_up, brightness_down, whatsapp_message (query "contact|message"), whatsapp_file (query "contact|file name"). Max 5 steps in order. Use query "now" when there is no target. An ordinary question or chat means intent answer.';
+  const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+KEY},
+   body:JSON.stringify({model:"openai/gpt-oss-120b",messages:[{role:"system",content:sys},{role:"user",content:o}],temperature:.1,max_tokens:350,reasoning_effort:"low"})});
+  const p=JSON.parse(((await r.json()).choices?.[0]?.message?.content||"").replace(/^```(?:json)?\s*|\s*```$/g,"").trim());
+  if(p.intent!="plan"||!Array.isArray(p.steps)||!p.steps.length||p.steps.length>5)return 0;
+  await speak("Theek hai, ye kaam kar raha hoon.");
+  const M={web_search:q=>`google par ${q} search karo`,youtube_play:q=>`play ${q}`,open_app:q=>`open ${q}`,find_file:q=>`${q} file dhundo`,screenshot:()=>"screenshot lo",volume_up:()=>"volume badhao",volume_down:()=>"volume kam karo",brightness_up:()=>"brightness badhao",brightness_down:()=>"brightness kam karo"};
+  for(const st of p.steps){const q=String(st.query||"").trim(),[c,...m]=q.split("|");
+   if(st.action=="whatsapp_message")await lap("whatsapp_message",{contact:c.trim(),message:m.join("|").trim()},`${c.trim()} ko message bhej diya.`);
+   else if(st.action=="whatsapp_file")await lap("whatsapp_file",{contact:c.trim(),query:m.join("|").trim()},`${c.trim()} ko file bhej di.`);
+   else if(M[st.action])await proc(M[st.action](q))}
+  return 1}catch{return 0}finally{agentBusy=false}}
 async function proc(o){
  const t=clean(o),ol=o.toLowerCase();last=Date.now();
  if(is(t,"privacy mode","privacy mode on","privacy on","mic off","microphone off")){await speak("Privacy mode on. Microphone listening ab completely disabled hai. Wapas wake mode mein aane ke liye Control Alt J press kijiye.");privacy=true;return"privacy"}
@@ -236,14 +267,17 @@ async function proc(o){
  if(is(t,"jarvis unlock","unlock jarvis","session unlock","unlock session")){await speak("Security ke liye session voice se unlock nahi hoga. Control Alt J locally press kijiye.");return 1}
  if(/\b(password|passcode|otp|one time password|api key|apikey|secret key|token|pin|cvv)\b/.test(ol)){await speak("Security ke liye password, OTP, PIN ya API key ko main repeat ya memory mein save nahi karunga.");return 1}
  if(locked&&!has(t,"time","date","battery","who are you","tum kaun ho")){await speak("Jarvis session locked hai. Sensitive commands abhi disabled hain.");return 1}
- 
+
+ if(!/^(jab main|translate|yaad rakho|remember|mera task add|task add|todo add|quiz)/.test(t)){const cp=t.split(/\s+(?:phir|fir|uske baad|and then|then)\s+/).map(x=>x.trim()).filter(Boolean);
+  if(cp.length>1&&cp.every(x=>x.split(" ").length>=2)){let pv="";for(let p of cp.slice(0,5)){if(pv.includes("screenshot")&&p.includes("whatsapp")&&!p.includes("screenshot"))p+=" screenshot";pv=p;const r=await proc(p);if(r==="privacy"||r==="sleep"||r===false)return r}return 1}}
+
  if(is(t,"video band karo","stop video","video band","video stop","video close")){const o=$("#ytp");if(o)o.remove();await speak("Video band kar diya.");return 1}
  if(is(t,"bye","bye bye","goodbye","good night","stop","stop jarvis","so jao","so ja","jarvis so jao","sleep","sleep jarvis","band ho jao","jarvis band karo")){
   await speak("Okay, main sleep mode mein ja raha hoon. Hello Jarvis ya uth jao bolkar mujhe wapas jaga sakte ho.");return"sleep"}
  if(is(t,"exit","exit jarvis","close jarvis","quit jarvis")){await speak("Okay, Jarvis completely band kar raha hoon. Bye.");return false}
  if(has(t,"who are you","tum kaun ho","aap kaun ho")){await speak("Main Jarvis hoon, aapka AI voice assistant.");return 1}
  if(has(t,"kisne banaya","who made you","who created you","creator kaun")){await speak("Mujhe Pratiksha Naik ne banaya hai.");return 1}
- 
+
  if(t.startsWith("mera task add karo")||t.startsWith("task add karo")||t.startsWith("todo add")){
   let k=t.replace(/^(mera )?task add karo[: ]*|^todo add[: ]*/,"").trim();if(!k)k=await ask("Kaunsa task add karna hai?");
   if(k&&await conf(`to-do list mein ${k} add karunga`)){SV("todo",[...LS("todo",[]),k]);await speak("Task to-do list mein add ho gaya.")}return 1}
@@ -254,7 +288,7 @@ async function proc(o){
   if(n&&await conf(`note memory mein save karunga: ${n}`)){SV("notes",[...LS("notes",[]),n]);await speak("Yaad rakh liya.")}return 1}
  if(has(t,"maine kya yaad","notes memory","kya yaad rakhne")){const d=LS("notes",[]);await speak(d.length?"Aapne mujhe yaad rakhne bola tha: "+d.slice(-5).join("; "):"Aapne abhi mujhe kuch yaad rakhne nahi bola.");return 1}
  if(has(t,"weather","mausam")){await weather(t);return 1}
- 
+
  if(t.startsWith("translate ")||has(t,"translate karo")){let l="English";for(const x of["Marathi","Hindi","English"])if(t.includes(x.toLowerCase()))l=x;
   const c=o.replace(/\b(translate|karo|into|in|marathi|hindi|english)\b/gi," ").replace(/\s+/g," ").trim();
   if(c){status("THINKING");await speak(await ai(`Translate this into ${l}. Return only the translation: ${c}`))}return 1}
@@ -266,11 +300,31 @@ async function proc(o){
  if(has(t,"code banao","program banao","coding mode")){const r=await ai("Give a correct beginner-friendly solution for this programming request. Explain briefly, then provide code: "+o);
   log("CODE",r);await speak("Code aur explanation chat mein de diya hai.");return 1}
  if(has(t,"calculate","calculate karo","percent of","percentage","convert ")){await speak(await ai("Calculate this carefully. Give the final answer first and a very short explanation: "+o));return 1}
- 
- if(has(t,"whatsapp")&&has(t,"message","msg","bhejo","bhejna","send","karo")){let c="";
-  for(const p of[/whatsapp\s+(?:par|per|pe)\s+(.+?)\s+ko\s+(?:message|msg)/,/(.+?)\s+ko\s+whatsapp\s+(?:par|per|pe)?\s*(?:message|msg)?/,/whatsapp\s+(?:message|msg)\s+(.+?)\s+ko/]){
-   const m=t.match(p);if(m&&!["message","msg","kisi","isko","usko"].includes(m[1].trim())){c=m[1].trim();break}}
-  await wa(c);return 1}
+
+ if(has(t,"whatsapp")&&has(t,"bhejo","bhej","send")&&/\b(file|pdf|photo|image|screenshot|document)\b/.test(t)){
+  let c="";for(const p of[/whatsapp\s+(?:par|pe|per)\s+(.+?)\s+ko/,/(?:file|pdf|photo|image|screenshot|document)\s+(?:whatsapp\s+(?:par|pe|per)\s+)?(.+?)\s+ko/,/^(.+?)\s+ko\s+whatsapp/]){const m=t.match(p);
+   if(m){const x=m[1].replace(/\b(wahi|vahi|yahi|ye|file|pdf|photo|image|screenshot|document|ek|woh|vo|whatsapp)\b/g," ").replace(/\s+/g," ").trim();if(x){c=x;break}}}
+  const d={};if(/screenshot/.test(t))d.source="screenshot";else if(/\b(wahi|vahi|yahi|same)\b/.test(t))d.source="found";else{const q=await ask("Kaunsi file bhejni hai? File ka naam bolo.",8,8);if(!q)return 1;d.query=q}
+  c=c||await ask("Kisko bhejni hai? Contact ka naam bolo.",8,6);if(!c)return 1;
+  await lap("whatsapp_file",{contact:c,...d},`${c} ko file bhej di.`);return 1}
+ if(has(t,"whatsapp")&&has(t,"message","msg","bhejo","bhejna","send","karo")){
+  const w=waParse(o);let c="",m="";if(w){c=w[0];m=w[1]}else{
+   for(const p of[/whatsapp\s+(?:par|per|pe)\s+(.+?)\s+ko\s+(?:message|msg)/,/(.+?)\s+ko\s+whatsapp\s+(?:par|per|pe)?\s*(?:message|msg)?/,/whatsapp\s+(?:message|msg)\s+(.+?)\s+ko/]){
+    const x=t.match(p);if(x&&!["message","msg","kisi","isko","usko"].includes(x[1].trim())){c=x[1].trim();break}}
+   c=c||await ask("Kisko WhatsApp message bhejna hai? Contact ka naam bolo.",8,6);if(!c)return 1;
+   m=await ask(`${c} ko kya message bhejna hai?`,10,12);if(!m)return 1}
+  await lap("whatsapp_message",{contact:c,message:m},`${c} ko message bhej diya.`);return 1}
+ if(has(t,"volume up","volume badhao","volume badao","volume jyada","volume zyada","volume increase","aawaz badhao","awaz badhao","sound badhao")){await lap("volume",{dir:"up"},"Volume badha diya hai.");return 1}
+ if(has(t,"volume down","volume kam","volume decrease","volume low","aawaz kam","awaz kam","sound kam")){await lap("volume",{dir:"down"},"Volume kam kar diya hai.");return 1}
+ if(is(t,"mute","mute karo","sound mute","volume mute")){await lap("sys",{name:"mute"},"Mute toggle kar diya hai.");return 1}
+ if(has(t,"brightness")){const n=t.match(/\d+/),up=has(t,"badhao","badao","jyada","zyada","up","increase"),dn=has(t,"kam","down","decrease","low","ghatao");
+  if(n)await lap("brightness",{value:+n[0]},`Brightness ${n[0]} percent kar di.`);else if(up||dn)await lap("brightness",{delta:up?20:-20},r=>`Brightness ${r.value} percent kar di.`);else await speak("Brightness kitne percent karni hai?");return 1}
+ if(has(t,"file dhundo","folder dhundo","pdf dhundo","file search","folder search")||/\.(py|pdf|txt|docx|xlsx|pptx)\s+kholo$/.test(t)){await lap("find_file",{query:t,open:true},r=>`${r.name} open kar diya.`);return 1}
+ if(has(t,"downloads kholo","documents kholo","desktop kholo")){await lap("open_folder",{name:t.includes("downloads")?"Downloads":t.includes("documents")?"Documents":"Desktop"},"Folder open kar diya.");return 1}
+ for(const[re,nm,msg]of[[/sab minimize|minimize all|desktop dikhao|show desktop|sab window minimize|sab chhupao/,"minimize","Saari windows minimize kar di hain."],[/window band karo|window close karo|close window|current window close|app close karo|app band karo/,"close_window","Window close kar di."],
+  [/laptop lock|lock laptop|lock screen|computer lock|pc lock/,"lock","Laptop lock kar raha hoon."],[/^(enter|enter dabao|press enter|enter press karo)$/,"enter","Enter press kar diya."],[/^(backspace|backspace dabao|delete last)$/,"backspace","Backspace press kar diya."],
+  [/^(pause|pause karo|media pause|resume|resume karo|play pause|music pause)$/,"playpause","Media play pause kar diya."]])if(re.test(t)){await lap("sys",{name:nm},msg);return 1}
+ if(/^(type karo|type|likho) /.test(t)){await lap("type",{text:t.replace(/^(type karo|type|likho) /,"")},"Type kar diya.");return 1}
  if(has(t,"instagram")&&has(t,"message","msg","dm","bhejo","send","karo")){let u="";
   for(const p of[/instagram\s+(?:par|per|pe)\s+(.+?)\s+ko\s+(?:message|msg|dm)\s*(?:bhejo|send karo|karo)?$/,/(.+?)\s+ko\s+instagram\s+(?:par|per|pe)?\s*(?:message|msg|dm)?\s*(?:bhejo|send karo|karo)?$/]){const m=t.match(p);if(m){u=m[1].trim();break}}
   u=u||await ask("Instagram par kisko message bhejna hai? Username bolo.");const m=u?await ask("Kya message bhejna hai?"):"";
@@ -302,8 +356,8 @@ async function proc(o){
  if(has(t,"text file banao","python file banao")){const py=t.includes("python"),k=t.replace(/\b(text|python|file|banao|bana do|ki|ka)\b/g," ").replace(/\s+/g," ").trim()||"Jarvis notes";
   if(await conf(`${k} ki file banaunga`)){const c=await ai(`Write ${py?"Python code":"clear notes"} for: ${k}. Return only the file content.`);
    dl("data:text/plain;charset=utf-8,"+encodeURIComponent(c),(k.replace(/[^A-Za-z0-9_-]+/g,"_").slice(0,40)||"jarvis_file")+(py?".py":".txt"));await speak("File bana di hai aur download ho gayi.")}return 1}
- if(has(t,"screenshot","screen shot")){await shot();return 1}
- 
+ if(has(t,"screenshot","screen shot")){const r=await br("screenshot");if(r&&r.ok)await speak("Screenshot save ho gaya hai.");else await shot();return 1}
+
  if(NOWEB.test(t)&&!/\balarm\b|\btimer\b/.test(t)){await speak("Ye feature sirf Windows desktop wale Jarvis me kaam karta hai, browser version me nahi.");return 1}
  if(has(t,"timer")){const n=t.match(/\d+/);if(!n){await speak("Kitne minute ya second ka timer lagana hai?");return 1}
   const v=+n[0],sec_=t.includes("second"),lab=`${v} ${sec_?"second":"minute"} ka timer`;await speak(`${lab} start kar diya hai.`);
@@ -319,8 +373,8 @@ async function proc(o){
   await speak(`Aaj ${new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"})} hai.`);return 1}
  if(has(t,"battery","charging")){try{const b=await navigator.getBattery();await speak(`Battery ${Math.round(b.level*100)} percent hai. Device ${b.charging?"charging par laga hai":"charging par nahi hai"}.`)}
   catch{await speak("Is browser me battery status check nahi ho paya.")}return 1}
- 
- 
+
+
  if(has(t,"youtube")&&has(t,"search","play","chalao","bajao","dikhao")){const k=t.replace(/\b(youtube|par|pe|per|mein|me|search|karo|kar|play|aur|uska|uski|chalao|bajao|dikhao|ye|yeh)\b/g," ").replace(/\s+/g," ").trim();await yt(k||null);return 1}
  if(has(t,"google par","google pe","google mein","google me","search karo","dhoondho","dhundo")||t.startsWith("search ")||t.startsWith("google ")){
   if(await conf(`web par search karunga: ${o}`)){let k=t;for(const w of["jarvis","google par","google pe","google mein","google me","google","search karo","search kar","search","dhoondho","dhundo","find"])k=k.split(w).join(" ");
@@ -335,11 +389,12 @@ async function proc(o){
   if(nm=="youtube"){await yt();return 1}
   if(appKey(nm)||!SITES[nm]){await openApp(nm);return 1}
   await speak(`${nm} open kar raha hoon.`);go(SITES[nm]);return 1}
- 
+
+ if(await agent(o))return 1;
  status("THINKING","Processing command...");
  if(!KEY){const m=mood(clean(o));if(m){await speak(m);return 1}}
  await speak(await ai(o));return 1}
- 
+
 /* ---------- WAKE / SLEEP ---------- */
 function wake(text){
  const c=(text||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
@@ -349,7 +404,7 @@ const wakeReply=()=>{const h=new Date().getHours();return speak(`${h>=5&&h<12?"G
 function unlock(){if(privacy){privacy=false;last=Date.now()}else if(locked){locked=false;last=Date.now()}sec()}
 addEventListener("keydown",e=>{if(e.ctrlKey&&e.altKey&&e.key.toLowerCase()=="j")unlock()});
 $("#ul").onclick=unlock;
- 
+
 async function loop(){while(running){try{
  if(privacy){awake=false;status("SLEEPING","Privacy mode • Ctrl+Alt+J ya Unlock dabao");while(privacy)await sleep(80);continue}
  if(awake&&Date.now()-last>=180000){awake=false;status("SLEEPING","Say Hello Jarvis to wake me")}
@@ -358,27 +413,27 @@ async function loop(){while(running){try{
  const r=await listen(awake?5000:3500,awake?10000:5000);
  if(!r.t){await sleep(denied?1500:120);continue}
  log("YOU",r.t);status("THINKING","Processing command...");last=Date.now();
- if(wake(r.t)){if(awake)await speak("Yes, Jarvis is already awake. Bataiye kya karna hai?");else{awake=true;status("READY","Awake • Ready when you are");await wakeReply()}continue}
+ if(wake(r.t)&&(!awake||r.t.trim().split(/\s+/).length<=4)){if(awake)await speak("Yes, Jarvis is already awake. Bataiye kya karna hai?");else{awake=true;status("READY","Awake • Ready when you are");await wakeReply()}continue}
  if(!awake){if(!r.k)continue;awake=true}
  const res=await proc(r.t);
  if(res=="privacy"){awake=false;continue}
  if(res=="sleep"){awake=false;status("SLEEPING","Wake word only • Say Hello Jarvis");continue}
  if(res===false){running=false;awake=false;status("SLEEPING","Jarvis band hai. Page reload karo.")}
 }catch(e){console.error(e);status("ERROR",e.name+": retrying microphone");await sleep(800)}}}
- 
+
 /* ---------- Typed input, start, API key ---------- */
 $("#f").onsubmit=e=>{e.preventDefault();const v=$("#txt").value.trim();$("#txt").value="";if(!v)return;
  if(privacy){log("SYSTEM","Privacy mode on hai. Ctrl+Alt+J ya Unlock dabao.");return}
  waiter?waiter(v):q.push(v)};
 $("#keybtn").onclick=()=>{const k=prompt("Groq API key (sirf is browser me save hogi):",KEY);if(k!==null){KEY=k.trim();localStorage.jarvisKey=KEY}};
 $("#k").value=KEY;$("#k").addEventListener("keydown",e=>{if(e.key=="Enter")$("#go").click()});
-$("#go").onclick=()=>{KEY=$("#k").value.trim();if(!KEY){$("#kerr").style.display="block";return}localStorage.jarvisKey=KEY;$("#start").remove();
+$("#go").onclick=()=>{ping();KEY=$("#k").value.trim();if(!KEY){$("#kerr").style.display="block";return}localStorage.jarvisKey=KEY;$("#start").remove();
  log("SYSTEM","Ready. Say ‘Hello Jarvis’ to start.");
  if(!KEY)log("SYSTEM","AI answers ke liye upar API key button se Groq key daalo.");
  if(!SR)log("SYSTEM","Is browser me voice recognition nahi hai. Chrome ya Edge use karo; abhi type karke chala sakte ho.");
  running=true;status("SLEEPING");loop()};
 sec();status("SLEEPING");
- 
+
 /* ---------- Orb animation (port of JarvisGUI.animate) ---------- */
 const cv=$("#cv"),c=cv.getContext("2d"),SH=["#0d1b22","#0d2029","#0e2530","#0e2a36","#10303d","#123744","#15404f","#18495a"],
  RA=["#245268","#286b83","#2b86a0","#55c7df"],RB=["#173d4e","#20586d","#24758d","#3aa7c0"],
