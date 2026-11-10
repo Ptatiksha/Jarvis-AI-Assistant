@@ -36,7 +36,6 @@ jobs:
       - name: Build laptop bridge exe
         run: >
           pyinstaller --onefile --name JarvisBridge
-          --collect-all pywhatkit
           --hidden-import pygetwindow
           --hidden-import screen_brightness_control
           jarvis_bridge.py
