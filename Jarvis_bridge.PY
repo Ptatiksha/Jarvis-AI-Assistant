@@ -116,9 +116,21 @@ def open_url(url):
     webbrowser.open(url)
 
 
+def youtube_id(query):
+    """Pehle video ka id YouTube search se nikalta hai (video filter ke saath)."""
+    import urllib.parse
+    import urllib.request
+    url = "https://www.youtube.com/results?sp=EgIQAQ%3D%3D&search_query=" + urllib.parse.quote(query or "")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"})
+    html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "ignore")
+    m = re.search(r'"videoId":"([\w-]{11})"', html)
+    if not m:
+        raise ValueError("Video nahi mila.")
+    return m.group(1)
+
+
 def youtube_play(query):
-    import pywhatkit
-    pywhatkit.playonyt(query)
+    webbrowser.open("https://www.youtube.com/watch?v=" + youtube_id(query))
 
 
 def _wa_open_chat(contact):
@@ -212,6 +224,8 @@ def run(d):
         extra = open_app(d.get("name"))
     elif a == "open_url":
         open_url(d.get("url"))
+    elif a == "youtube_id":
+        extra = {"id": youtube_id(d.get("query"))}
     elif a == "youtube_play":
         youtube_play(d.get("query"))
     elif a == "whatsapp_message":
