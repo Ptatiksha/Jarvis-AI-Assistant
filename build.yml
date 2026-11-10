@@ -30,13 +30,28 @@ jobs:
           --collect-all edge_tts
           --collect-all speech_recognition
           --collect-all pywhatkit
-          jarvis_mood_aware_v14.py
+          --hidden-import jarvis_mood_aware_v15
+          jarvis_launcher.py
+
+      - name: Build laptop bridge exe
+        run: >
+          pyinstaller --onefile --name JarvisBridge
+          --collect-all pywhatkit
+          --hidden-import pygetwindow
+          --hidden-import screen_brightness_control
+          jarvis_bridge.py
 
       - name: Save exe as download
         uses: actions/upload-artifact@v4
         with:
           name: Jarvis-exe
           path: dist/Jarvis.exe
+
+      - name: Save bridge exe as download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-Bridge-exe
+          path: dist/JarvisBridge.exe
 
       - name: Attach exe to the release
         if: github.event_name == 'release'
