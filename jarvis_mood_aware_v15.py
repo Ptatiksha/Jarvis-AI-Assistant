@@ -13,14 +13,14 @@ import hashlib
 import math
 import tkinter as tk
 from tkinter import messagebox
-
+ 
 try:
     import customtkinter as ctk
     GUI_AVAILABLE = True
 except ImportError:
     ctk = None
     GUI_AVAILABLE = False
-
+ 
 import edge_tts
 import pygame
 import speech_recognition as sr
@@ -28,10 +28,10 @@ import pyautogui
 import pyperclip
 import psutil
 import pywhatkit
-
+ 
 from fpdf import FPDF
 from openai import OpenAI
-
+ 
 # Browser automation for REAL WhatsApp Web / Gmail interaction.
 try:
     from selenium import webdriver
@@ -43,32 +43,32 @@ try:
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
-
-
-
+ 
+ 
+ 
 # ============================================================
 # JARVIS CONFIGURATION
 # ============================================================
-
+ 
 pyautogui.FAILSAFE = False
-
+ 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-
+ 
 GROQ_MODEL = "openai/gpt-oss-120b"
-
+ 
 # True = koi Yes/No confirmation nahi poochega. False karoge to confirmation wapas aa jayega.
 AUTO_CONFIRM = True
-
+ 
 client = OpenAI(
     api_key=GROQ_API_KEY or "missing-api-key",
     base_url="https://api.groq.com/openai/v1"
 )
-
-
+ 
+ 
 # ============================================================
 # JARVIS AI PERSONALITY + MEMORY
 # ============================================================
-
+ 
 messages = [
     {
         "role": "system",
@@ -106,66 +106,66 @@ messages = [
         )
     }
 ]
-
-
+ 
+ 
 # ============================================================
 # SPEECH RECOGNITION
 # ============================================================
-
+ 
 recognizer = sr.Recognizer()
-
+ 
 recognizer.pause_threshold = 0.8
 recognizer.energy_threshold = 300
 recognizer.dynamic_energy_threshold = True
-
+ 
 speech_lock = threading.Lock()
-
-
+ 
+ 
 # ============================================================
 # EDGE TTS VOICES
 # ============================================================
-
+ 
 HINDI_VOICE = "hi-IN-MadhurNeural"
-
+ 
 ENGLISH_VOICE = "en-IN-PrabhatNeural"
-
-
+ 
+ 
 # ============================================================
 # EDGE TTS AUDIO GENERATOR
 # ============================================================
-
+ 
 async def generate_speech(text, output_file, voice):
-
+ 
     communicate = edge_tts.Communicate(
         text=text,
         voice=voice,
         rate="+12%",
         pitch="+0Hz"
     )
-
+ 
     await communicate.save(output_file)
-
-
+ 
+ 
 # ============================================================
 # VOICE SELECTION
 # ============================================================
-
+ 
 def select_voice(text):
-
+ 
     # Hindi / Marathi Devanagari
     if re.search(r"[\u0900-\u097F]", text):
         return HINDI_VOICE
-
+ 
     # English / Roman Hinglish
     return ENGLISH_VOICE
-
-
+ 
+ 
 # ============================================================
 # PROFESSIONAL GUI HOOKS
 # ============================================================
-
+ 
 GUI_APP = None
-
+ 
 def gui_status(state, detail=None):
     app = globals().get("GUI_APP")
     if app is not None:
@@ -173,7 +173,7 @@ def gui_status(state, detail=None):
             app.set_state(state, detail)
         except Exception:
             pass
-
+ 
 def gui_log(role, text):
     app = globals().get("GUI_APP")
     if app is not None:
@@ -181,60 +181,60 @@ def gui_log(role, text):
             app.add_message(role, str(text))
         except Exception:
             pass
-
+ 
 # ============================================================
 # SPEAK
 # ============================================================
-
+ 
 def speak(text):
-
+ 
     if text is None:
         return
-
+ 
     clean_text = str(text).strip()
-
+ 
     if not clean_text:
         return
-
+ 
     # Remove markdown
     clean_text = clean_text.replace("*", "")
     clean_text = clean_text.replace("#", "")
     clean_text = clean_text.replace("`", "")
     clean_text = clean_text.replace("_", " ")
-
+ 
     # Make maths sound natural
     clean_text = clean_text.replace("+", " plus ")
     clean_text = clean_text.replace("=", " equals ")
     clean_text = clean_text.replace("×", " multiplied by ")
     clean_text = clean_text.replace("÷", " divided by ")
     clean_text = clean_text.replace("%", " percent ")
-
+ 
     print("\nJarvis:", clean_text)
     gui_log("JARVIS", clean_text)
     gui_status("SPEAKING", clean_text[:90])
-
+ 
     voice = select_voice(clean_text)
-
+ 
     # Unique temp file
     temp_path = os.path.join(
         tempfile.gettempdir(),
         f"jarvis_{threading.get_ident()}.mp3"
     )
-
+ 
     with speech_lock:
-
+ 
         try:
-
+ 
             if pygame.mixer.get_init():
-
+ 
                 if pygame.mixer.music.get_busy():
                     pygame.mixer.music.stop()
-
+ 
                 try:
                     pygame.mixer.music.unload()
                 except Exception:
                     pass
-
+ 
             asyncio.run(
                 generate_speech(
                     clean_text,
@@ -242,120 +242,120 @@ def speak(text):
                     voice
                 )
             )
-
+ 
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
-
+ 
             pygame.mixer.music.load(temp_path)
-
+ 
             pygame.mixer.music.play()
-
+ 
             while pygame.mixer.music.get_busy():
                 pygame.time.wait(100)
-
+ 
             try:
                 pygame.mixer.music.unload()
             except Exception:
                 pass
-
+ 
         except Exception as error:
-
+ 
             print("\nVOICE ERROR:", error)
-
+ 
         finally:
-
+ 
             if os.path.exists(temp_path):
-
+ 
                 try:
                     os.remove(temp_path)
-
+ 
                 except OSError:
                     pass
-
+ 
     time.sleep(0.3)
-
-
+ 
+ 
 # ============================================================
 # AI FUNCTION
 # ============================================================
-
+ 
 def ask_ai(question):
-
+ 
     try:
-
+ 
         if not GROQ_API_KEY or GROQ_API_KEY == "YOUR_GROQ_API_KEY":
-
+ 
             return (
                 "Groq API key set nahi hai. Windows CMD mein GROQ_API_KEY environment variable set karke Jarvis dobara run karo."
             )
-
+ 
         print("\nJarvis soch raha hai...")
-
+ 
         messages.append(
             {
                 "role": "user",
                 "content": question
             }
         )
-
+ 
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             messages=messages,
             temperature=0.45,
             max_tokens=240
         )
-
+ 
         reply = response.choices[0].message.content
-
+ 
         if not reply:
             return "Mujhe iska answer nahi mila."
-
+ 
         reply = reply.strip()
-
+ 
         messages.append(
             {
                 "role": "assistant",
                 "content": reply
             }
         )
-
+ 
         # Keep recent conversation memory
         if len(messages) > 17:
-
+ 
             system_message = messages[0]
-
+ 
             recent_messages = messages[-14:]
-
+ 
             messages.clear()
-
+ 
             messages.append(system_message)
-
+ 
             messages.extend(recent_messages)
-
+ 
         return reply
-
+ 
     except Exception as error:
-
+ 
         print("\nAI ERROR:", error)
-
+ 
         return (
             "AI se connect karne mein problem aa rahi hai."
         )
-
-
+ 
+ 
 def local_mood_response(user_text):
     """Small offline fallback for emotional messages when no AI API key is configured."""
     t = clean_command(user_text).lower()
     if not t:
         return None
-
+ 
     anger = ["gussa", "gusse", "angry", "furious", "irritate", "irritated", "bahut gussa", "dimag kharab"]
     sad = ["sad", "dukhi", "udaas", "bura lag", "rona", "ro rahi", "ro raha", "lonely", "akela", "akeli", "upset", "dil kharab", "mood kharab", "depressed"]
     happy = ["happy", "khush", "excited", "maza aa", "bahut achha", "good news", "i am great", "mast mood"]
     sick = ["bimar", "beemar", "tabiyat kharab", "sar dukh", "sir dukh", "headache", "bukhar", "fever", "pain ho", "dard ho", "nausea", "ulti"]
     tired = ["thak gayi", "thak gaya", "tired", "exhausted", "stress", "stressed", "tension", "overwhelmed"]
     confused = ["confused", "samajh nahi aa", "kya karun", "pata nahi kya karun", "pareshan"]
-
+ 
     if any(x in t for x in anger):
         return "Lagta hai kuch tumhe bahut irritate kar raha hai. Main calmly sun sakta hoon—kya hua, ya abhi tumhe kis tarah ki help chahiye?"
     if any(x in t for x in sad):
@@ -369,15 +369,16 @@ def local_mood_response(user_text):
     if any(x in t for x in confused):
         return "Koi baat nahi, ek-ek step karke dekhte hain. Tum mujhe situation thodi si batao; main options simple karke samjha dunga."
     return None
-
-
+ 
+ 
 # ============================================================
 # AI INTENT ROUTER + MULTI-STEP PLANNER (V12 ADDITION)
 # ============================================================
-
-PLANNER_ACTIONS = {"web_search", "youtube_search", "open_app", "find_file"}
-
-
+ 
+PLANNER_ACTIONS = {"web_search", "youtube_search", "youtube_play", "open_app", "find_file", "screenshot",
+                   "volume_up", "volume_down", "brightness_up", "brightness_down", "whatsapp_message", "whatsapp_file"}
+ 
+ 
 def _recent_command_context(current_text="", limit=7):
     """Return recent non-sensitive commands for follow-up interpretation."""
     try:
@@ -394,11 +395,11 @@ def _recent_command_context(current_text="", limit=7):
             continue
         cleaned.append(command[:180])
     return cleaned[-limit:]
-
-
+ 
+ 
 def classify_and_plan_command(user_text):
     """Use the LLM only for commands that did not match existing explicit handlers.
-
+ 
     The model can propose only a small allowlist of actions. It cannot directly execute
     arbitrary shell commands, send messages, or bypass confirmation gates.
     """
@@ -421,8 +422,9 @@ def classify_and_plan_command(user_text):
         "You are Jarvis's intent router and task planner. Interpret English, Hindi and Hinglish naturally. "
         "Use recent commands to resolve follow-ups such as 'ab beginner wala', but do not invent facts or targets. "
         "Return ONLY valid JSON matching the supplied schema. Choose intent='plan' only when the request clearly asks "
-        "for one or more supported actions. Allowed actions are web_search, youtube_search, open_app, find_file. "
-        "Use at most 3 steps, in order, with non-empty queries. Do not route sending messages/emails, deleting files, "
+        "for one or more supported actions. Allowed actions are web_search, youtube_search, youtube_play, open_app, find_file, screenshot, volume_up, volume_down, brightness_up, brightness_down, whatsapp_message, whatsapp_file. "
+        "whatsapp_message query format is 'contact name|message text'; whatsapp_file query format is 'contact name|file name'; actions without a target use query 'now'. "
+        "Use at most 5 steps, in order, with non-empty queries. Do not route emails, deleting files, "
         "shell commands, purchases, or other unsupported/high-impact actions; choose clarify or answer instead. "
         "If the request is an ordinary question/conversation, use intent='answer'. If the target is ambiguous, use intent='clarify'. "
         "Never claim an action was already executed. The program will ask for user confirmation before every step. "
@@ -446,7 +448,7 @@ def classify_and_plan_command(user_text):
             return None
         if intent == "plan":
             steps = data.get("steps", [])
-            if not isinstance(steps, list) or not steps or len(steps) > 3:
+            if not isinstance(steps, list) or not steps or len(steps) > 5:
                 return None
             valid = []
             for step in steps:
@@ -463,15 +465,23 @@ def classify_and_plan_command(user_text):
     except Exception as error:
         print("AI INTENT ROUTER ERROR:", type(error).__name__, str(error)[:300])
         return None
-
-
+ 
+ 
 def execute_ai_plan(plan):
     """Execute only allowlisted actions, asking the user before each action."""
     action_names = {
         "web_search": "Google par search karna",
         "youtube_search": "YouTube par search karna",
         "open_app": "application open karna",
-        "find_file": "local file search karna aur open karna"
+        "find_file": "local file search karna aur open karna",
+        "youtube_play": "YouTube par video play karna",
+        "screenshot": "screenshot lena",
+        "volume_up": "volume badhana",
+        "volume_down": "volume kam karna",
+        "brightness_up": "brightness badhana",
+        "brightness_down": "brightness kam karna",
+        "whatsapp_message": "WhatsApp message bhejna",
+        "whatsapp_file": "WhatsApp par file bhejna"
     }
     steps = plan.get("steps", [])
     for index, step in enumerate(steps, start=1):
@@ -490,13 +500,33 @@ def execute_ai_plan(plan):
                 dynamic_open_app(query)
             elif action == "find_file":
                 search_local_file(query, open_result=True)
+            elif action == "youtube_play":
+                play_youtube_anything(query)
+            elif action == "screenshot":
+                take_screenshot()
+            elif action in ("volume_up", "volume_down"):
+                for _ in range(5):
+                    pyautogui.press("volumeup" if action == "volume_up" else "volumedown")
+                speak("Volume badha diya hai." if action == "volume_up" else "Volume kam kar diya hai.")
+            elif action in ("brightness_up", "brightness_down"):
+                change_brightness(20 if action == "brightness_up" else -20)
+            elif action == "whatsapp_message":
+                who, _, what = query.partition("|")
+                whatsapp_message(who.strip(), what.strip())
+            elif action == "whatsapp_file":
+                who, _, fname = query.partition("|")
+                found = find_local_file(fname)
+                if found:
+                    send_file_whatsapp(who.strip(), found)
+                else:
+                    speak("File nahi mili.")
         except Exception as error:
             print("AI PLAN STEP ERROR:", action, repr(error))
             speak(f"Step {index} complete nahi ho paya. Baaki plan rok raha hoon.")
             return False
     return True
-
-
+ 
+ 
 def reset_user_controlled_memory():
     """Clear saved notes and conversational context only after explicit confirmation."""
     global messages
@@ -510,19 +540,19 @@ def reset_user_controlled_memory():
     except Exception as error:
         print("MEMORY CLEAR ERROR:", repr(error))
         speak("Memory clear nahi ho payi. Terminal error check karo.")
-
-
+ 
+ 
 # ============================================================
 # FAST / STABLE MICROPHONE ENGINE
 # ============================================================
-
+ 
 MIC_DEVICE_INDEX = None  # None = Windows default microphone
 MIC_SAMPLE_RATE = 16000
 MIC_CHUNK_SIZE = 1024
 MIC_CALIBRATED = False
 MIC_ERROR_COUNT = 0
-
-
+ 
+ 
 def _new_microphone():
     """Create a fresh microphone object. A fresh object helps PyAudio recover after device glitches."""
     return sr.Microphone(
@@ -530,8 +560,8 @@ def _new_microphone():
         sample_rate=MIC_SAMPLE_RATE,
         chunk_size=MIC_CHUNK_SIZE,
     )
-
-
+ 
+ 
 def calibrate_microphone_once():
     """Calibrate only once. Recalibrating every loop makes wake-up slower and can trigger PyAudio assertions."""
     global MIC_CALIBRATED
@@ -550,8 +580,8 @@ def calibrate_microphone_once():
         recognizer.energy_threshold = 300
         MIC_CALIBRATED = True
         return False
-
-
+ 
+ 
 def capture_voice(timeout=4, phrase_time_limit=9):
     """Fast capture with recovery from intermittent PyAudio AssertionError."""
     global MIC_ERROR_COUNT
@@ -574,168 +604,168 @@ def capture_voice(timeout=4, phrase_time_limit=9):
         print(f"MIC OS RETRY {MIC_ERROR_COUNT}: {error}")
         time.sleep(min(1.5, 0.25 * MIC_ERROR_COUNT))
         raise sr.WaitTimeoutError("microphone device retry") from error
-
-
+ 
+ 
 def recognize_voice(audio):
     """Google recognizer with Indian English; it also handles common Hinglish wake phrases well."""
     return recognizer.recognize_google(audio, language="en-IN").strip()
-
+ 
 # ============================================================
 # TIMER
 # ============================================================
-
+ 
 def background_timer(seconds, label):
-
+ 
     time.sleep(seconds)
-
+ 
     for _ in range(3):
-
+ 
         speak(
             f"{label} complete ho gaya hai."
         )
-
+ 
         time.sleep(1)
-
-
+ 
+ 
 # ============================================================
 # ALARM
 # ============================================================
-
+ 
 def background_alarm(hour, minute):
-
+ 
     speak(
         f"{hour}:{minute:02d} ka alarm set ho gaya hai."
     )
-
+ 
     while True:
-
+ 
         now = datetime.datetime.now()
-
+ 
         if now.hour == hour and now.minute == minute:
-
+ 
             for _ in range(4):
-
+ 
                 speak(
                     "Alarm ka time ho gaya hai."
                 )
-
+ 
                 time.sleep(1)
-
+ 
             break
-
+ 
         time.sleep(10)
-
-
+ 
+ 
 # ============================================================
 # SET TIMER
 # ============================================================
-
+ 
 def set_timer_from_text(text):
-
+ 
     numbers = re.findall(r"\d+", text)
-
+ 
     if not numbers:
-
+ 
         speak(
             "Kitne minute ya second ka timer lagana hai?"
         )
-
+ 
         return
-
+ 
     value = int(numbers[0])
-
+ 
     if "second" in text:
-
+ 
         seconds = value
-
+ 
         label = f"{value} second ka timer"
-
+ 
     else:
-
+ 
         seconds = value * 60
-
+ 
         label = f"{value} minute ka timer"
-
+ 
     speak(
         f"{label} start kar diya hai."
     )
-
+ 
     threading.Thread(
         target=background_timer,
         args=(seconds, label),
         daemon=True
     ).start()
-
-
+ 
+ 
 # ============================================================
 # SET ALARM
 # ============================================================
-
+ 
 def set_alarm_from_text(text):
-
+ 
     # 7:30 / 07:30
     match = re.search(
         r"\b(\d{1,2})[:.](\d{1,2})\b",
         text
     )
-
+ 
     hour = None
     minute = 0
-
+ 
     if match:
-
+ 
         hour = int(match.group(1))
         minute = int(match.group(2))
-
+ 
     else:
-
+ 
         numbers = re.findall(r"\d+", text)
-
+ 
         if numbers:
             hour = int(numbers[0])
-
+ 
     if hour is None:
-
+ 
         speak(
             "Kitne baje ka alarm lagana hai?"
         )
-
+ 
         return
-
+ 
     # AM / PM support
     if "pm" in text and hour < 12:
         hour += 12
-
+ 
     if "am" in text and hour == 12:
         hour = 0
-
+ 
     if hour > 23 or minute > 59:
-
+ 
         speak(
             "Alarm ka time sahi nahi hai."
         )
-
+ 
         return
-
+ 
     threading.Thread(
         target=background_alarm,
         args=(hour, minute),
         daemon=True
     ).start()
-
-
+ 
+ 
 # ============================================================
 # AI IMAGE
 # ============================================================
-
+ 
 def create_ai_image(prompt_text):
-
+ 
     try:
-
+ 
         speak(
             f"{prompt_text} ki image bana raha hoon."
         )
-
+ 
         # AI converts Hinglish/Hindi description to image prompt
         response = client.chat.completions.create(
             model=GROQ_MODEL,
@@ -753,7 +783,7 @@ def create_ai_image(prompt_text):
             temperature=0.5,
             max_tokens=250
         )
-
+ 
         english_prompt = (
             response
             .choices[0]
@@ -761,64 +791,64 @@ def create_ai_image(prompt_text):
             .content
             .strip()
         )
-
+ 
         encoded_prompt = urllib.parse.quote(
             english_prompt
         )
-
+ 
         image_url = (
             "https://image.pollinations.ai/prompt/"
             + encoded_prompt
             + "?width=1024&height=1024&nologo=true"
         )
-
+ 
         response = requests.get(
             image_url,
             timeout=45
         )
-
+ 
         if response.status_code != 200:
-
+ 
             speak(
                 "Image server se image nahi mili."
             )
-
+ 
             return
-
+ 
         filename = os.path.abspath(
             f"jarvis_image_{int(time.time())}.jpg"
         )
-
+ 
         with open(filename, "wb") as file:
             file.write(response.content)
-
+ 
         speak("Image ready hai aur save ho gayi hai.")
         if confirm_action("generated image file open karunga"):
             os.startfile(filename)
         else:
             speak("Image save hai, lekin open nahi ki.")
-
+ 
     except Exception as error:
-
+ 
         print("\nIMAGE ERROR:", error)
-
+ 
         speak(
             "Image banane mein problem aayi."
         )
-
-
+ 
+ 
 # ============================================================
 # AI PDF
 # ============================================================
-
+ 
 def create_pdf_file(topic):
-
+ 
     try:
-
+ 
         speak(
             f"{topic} par PDF bana raha hoon."
         )
-
+ 
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
@@ -835,181 +865,181 @@ def create_pdf_file(topic):
             temperature=0.5,
             max_tokens=1500
         )
-
+ 
         content = response.choices[0].message.content
-
+ 
         if not content:
-
+ 
             speak(
                 "PDF ke liye content nahi mila."
             )
-
+ 
             return
-
+ 
         # FPDF built-in fonts are limited to Latin-1
         clean_content = (
             content
             .encode("latin-1", "ignore")
             .decode("latin-1")
         )
-
+ 
         clean_topic = (
             topic
             .encode("latin-1", "ignore")
             .decode("latin-1")
         )
-
+ 
         pdf = FPDF()
-
+ 
         pdf.set_auto_page_break(
             auto=True,
             margin=15
         )
-
+ 
         pdf.add_page()
-
+ 
         pdf.set_font(
             "Arial",
             "B",
             16
         )
-
+ 
         pdf.multi_cell(
             0,
             10,
             clean_topic.title(),
             align="C"
         )
-
+ 
         pdf.ln(5)
-
+ 
         pdf.set_font(
             "Arial",
             size=11
         )
-
+ 
         pdf.multi_cell(
             0,
             7,
             clean_content
         )
-
+ 
         safe_name = re.sub(
             r"[^A-Za-z0-9_-]+",
             "_",
             topic
         ).strip("_")
-
+ 
         if not safe_name:
             safe_name = "Jarvis_Notes"
-
+ 
         filename = os.path.abspath(
             safe_name[:40] + ".pdf"
         )
-
+ 
         pdf.output(filename)
-
+ 
         speak("PDF ready hai aur save ho gayi hai.")
         if confirm_action("generated PDF file open karunga"):
             os.startfile(filename)
         else:
             speak("PDF save hai, lekin open nahi ki.")
-
+ 
     except Exception as error:
-
+ 
         print("\nPDF ERROR:", error)
-
+ 
         speak(
             "PDF banane mein problem aayi."
         )
-
-
+ 
+ 
 # ============================================================
 # SCREENSHOT
 # ============================================================
-
+ 
 def take_screenshot():
-
+ 
     try:
-
+ 
         filename = os.path.abspath(
             f"screenshot_{int(time.time())}.png"
         )
-
+ 
         screenshot = pyautogui.screenshot()
-
+ 
         screenshot.save(filename)
         globals()["LAST_SCREENSHOT"] = filename
-
+ 
         speak(
             "Screenshot save ho gaya hai."
         )
-
+ 
         os.startfile(filename)
-
+ 
     except Exception as error:
-
+ 
         print("\nSCREENSHOT ERROR:", error)
-
+ 
         speak(
             "Screenshot lene mein problem aayi."
         )
-
-
+ 
+ 
 # ============================================================
 # BATTERY / CPU STATUS
 # ============================================================
-
+ 
 def system_status():
-
+ 
     try:
-
+ 
         cpu = psutil.cpu_percent(
             interval=0.5
         )
-
+ 
         battery = psutil.sensors_battery()
-
+ 
         if battery:
-
+ 
             percentage = round(
                 battery.percent
             )
-
+ 
             if battery.power_plugged:
                 charging = "charging par laga hai"
             else:
                 charging = "charging par nahi hai"
-
+ 
             speak(
                 f"Battery {percentage} percent hai. "
                 f"Laptop {charging}. "
                 f"CPU usage {cpu} percent hai."
             )
-
+ 
         else:
-
+ 
             speak(
                 f"CPU usage {cpu} percent hai."
             )
-
+ 
     except Exception as error:
-
+ 
         print("\nSYSTEM STATUS ERROR:", error)
-
+ 
         speak(
             "System status check nahi ho paya."
         )
-
-
+ 
+ 
 # ============================================================
 # GOOGLE SEARCH
 # ============================================================
-
+ 
 def google_search(text):
-
+ 
     query = text
-
+ 
     remove_words = [
         "jarvis",
         "google par",
@@ -1024,103 +1054,103 @@ def google_search(text):
         "dhundo",
         "find"
     ]
-
+ 
     for word in remove_words:
-
+ 
         query = query.replace(
             word,
             " "
         )
-
+ 
     query = re.sub(
         r"\s+",
         " ",
         query
     ).strip()
-
+ 
     if not query:
-
+ 
         speak(
             "Google par kya search karna hai?"
         )
-
+ 
         return
-
+ 
     speak(
         f"{query} search kar raha hoon."
     )
-
+ 
     url = (
         "https://www.google.com/search?q="
         + urllib.parse.quote(query)
     )
-
+ 
     webbrowser.open(url)
-
-
+ 
+ 
 # ============================================================
 # YOUTUBE SONG
 # ============================================================
-
+ 
 def listen_once(prompt=None):
-
+ 
     if prompt:
         speak(prompt)
-
+ 
     try:
         print("\nListening for your answer...")
         audio = capture_voice(timeout=8, phrase_time_limit=12)
-
+ 
         answer = recognizer.recognize_google(
             audio,
             language="en-IN"
         )
-
+ 
         print("Aapne kaha:", answer)
         return answer.strip()
-
+ 
     except sr.WaitTimeoutError:
         speak("Mujhe koi answer sunai nahi diya.")
         return None
-
+ 
     except sr.UnknownValueError:
         speak("Mujhe aapki baat samajh nahi aayi.")
         return None
-
+ 
     except sr.RequestError as error:
         print("\nSPEECH RECOGNITION ERROR:", error)
         speak("Speech recognition service se connect nahi ho raha.")
         return None
-
+ 
     except Exception as error:
         print("\nLISTEN ERROR:", error)
         return None
-
-
+ 
+ 
 def play_youtube_anything(query=None):
-
+ 
     try:
         if not query:
             query = listen_once(
                 "YouTube par kya search ya play karna hai?"
             )
-
+ 
         if not query:
             return
-
+ 
         query = query.strip()
-
+ 
         print("\nYouTube par search:", query)
-
+ 
         speak(
             f"YouTube par {query} search karke play kar raha hoon."
         )
-
+ 
         pywhatkit.playonyt(query)
-
+ 
     except Exception as error:
         print("\nYOUTUBE ERROR:", error)
-
+ 
         try:
             if query:
                 search_url = (
@@ -1132,136 +1162,136 @@ def play_youtube_anything(query=None):
         except Exception as second_error:
             print("\nYOUTUBE SEARCH ERROR:", second_error)
             speak("YouTube par search karne mein problem aa rahi hai.")
-
-
+ 
+ 
 # ============================================================
 # COMMAND CLEANER
 # ============================================================
-
+ 
 def clean_command(text):
-
+ 
     text = text.lower().strip()
-
+ 
     text = re.sub(
         r"\s+",
         " ",
         text
     )
-
+ 
     # Remove Jarvis from beginning
     text = re.sub(
         r"^jarvis[\s,]*",
         "",
         text
     )
-
+ 
     return text.strip()
-
-
+ 
+ 
 # ============================================================
 # APP OPENING FUNCTIONS
 # ============================================================
-
+ 
 def open_notepad():
-
+ 
     speak(
         "Notepad khol raha hoon."
     )
-
+ 
     os.system(
         "start notepad"
     )
-
-
+ 
+ 
 def open_calculator():
-
+ 
     speak(
         "Calculator khol raha hoon."
     )
-
+ 
     os.system(
         "start calc"
     )
-
-
+ 
+ 
 def open_paint():
-
+ 
     speak(
         "Paint khol raha hoon."
     )
-
+ 
     os.system(
         "start mspaint"
     )
-
-
+ 
+ 
 def open_camera():
-
+ 
     speak(
         "Camera khol raha hoon."
     )
-
+ 
     os.system(
         "start microsoft.windows.camera:"
     )
-
-
+ 
+ 
 def open_settings():
-
+ 
     speak(
         "Settings khol raha hoon."
     )
-
+ 
     os.system(
         "start ms-settings:"
     )
-
-
+ 
+ 
 def open_explorer():
-
+ 
     speak(
         "File Explorer khol raha hoon."
     )
-
+ 
     os.system(
         "start explorer"
     )
-
-
+ 
+ 
 def open_cmd():
-
+ 
     speak(
         "Command Prompt khol raha hoon."
     )
-
+ 
     os.system(
         "start cmd"
     )
-
-
+ 
+ 
 def open_chrome():
-
+ 
     # Kept function name so old command routing does not break.
     speak("Microsoft Edge khol raha hoon.")
     try:
         os.system("start msedge")
     except Exception:
         webbrowser.open("https://www.google.com")
-
-
+ 
+ 
 def open_youtube():
-
+ 
     speak(
         "YouTube khol raha hoon."
     )
-
+ 
     webbrowser.open(
         "https://www.youtube.com"
     )
-
-
+ 
+ 
 def open_whatsapp():
-
+ 
     speak(
         "WhatsApp Microsoft Edge mein khol raha hoon."
     )
@@ -1269,19 +1299,19 @@ def open_whatsapp():
         subprocess.Popen(["msedge", "https://web.whatsapp.com"])
     except Exception:
         os.system('start msedge "https://web.whatsapp.com"')
-
-
+ 
+ 
 def open_instagram():
-
+ 
     speak(
         "Instagram khol raha hoon."
     )
-
+ 
     webbrowser.open(
         "https://www.instagram.com"
     )
-
-
+ 
+ 
 # ============================================================
 # ADVANCED JARVIS FEATURES
 # ============================================================
@@ -1294,7 +1324,7 @@ import xml.etree.ElementTree as ET
 from email.message import EmailMessage
 from pathlib import Path
 from difflib import SequenceMatcher
-
+ 
 DATA_DIR = Path.home() / ".jarvis_data"
 DATA_DIR.mkdir(exist_ok=True)
 TODO_FILE = DATA_DIR / "todos.json"
@@ -1303,8 +1333,8 @@ CONTACTS_FILE = DATA_DIR / "contacts.json"
 CUSTOM_FILE = DATA_DIR / "custom_commands.json"
 HISTORY_FILE = DATA_DIR / "command_history.json"
 VISION_MODEL = "qwen/qwen3.8-27b"
-
-
+ 
+ 
 def _load_json(path, default):
     try:
         if path.exists():
@@ -1312,16 +1342,16 @@ def _load_json(path, default):
     except Exception:
         pass
     return default
-
-
+ 
+ 
 def _save_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
+ 
+ 
 INTERACTION_LOCK = threading.RLock()
 DIALOG_ACTIVE = False
-
-
+ 
+ 
 def listen_answer(prompt, timeout=8, phrase_time_limit=12):
     global DIALOG_ACTIVE
     with INTERACTION_LOCK:
@@ -1346,18 +1376,18 @@ def listen_answer(prompt, timeout=8, phrase_time_limit=12):
             return ""
         finally:
             DIALOG_ACTIVE = False
-
-
+ 
+ 
 def confirm_action(description):
     """Reliable voice confirmation before sensitive actions.
-
+ 
     Gives two chances to answer. Negative phrases are checked first so phrases
     such as "mat bhejo" never become an accidental approval.
     """
     if AUTO_CONFIRM:
         security_log("AUTO_CONFIRMED_ACTION", description)
         return True
-
+ 
     no_phrases = [
         "no", "nope", "nah", "nahi", "nahin", "nhi",
         "cancel", "cancel karo", "mat karo", "mat bhejo",
@@ -1370,10 +1400,10 @@ def confirm_action(description):
         "okay", "ok", "sure", "kar do", "bhejo",
         "हाँ", "हा", "भेजो", "कन्फर्म"
     ]
-
+ 
     # Speak the sensitive action once, then listen up to two times.
     speak(f"Main {description}. Kya main ye karu? Yes ya No bolo.")
-
+ 
     for attempt in range(1, 3):
         answer = ""
         try:
@@ -1390,49 +1420,49 @@ def confirm_action(description):
             print("Confirmation recognition service error:", error)
         except Exception as error:
             print("Confirmation listen error:", repr(error))
-
+ 
         a = (answer or "").lower().strip()
         a = re.sub(r"[^a-z0-9\u0900-\u097f\s]", " ", a)
         a = re.sub(r"\s+", " ", a).strip()
         print(f"Confirmation heard: {a if a else '[nothing recognized]'}")
-
+ 
         # Negative intent always wins.
         if any(phrase == a or phrase in a for phrase in no_phrases):
             print("Confirmation result: NO")
             speak("Theek hai, action cancel kar diya.")
             security_log("CANCELLED_ACTION", description)
             return False
-
+ 
         if any(phrase == a or phrase in a for phrase in yes_phrases):
             print("Confirmation result: YES")
             speak("Okay.")
             security_log("CONFIRMED_ACTION", description)
             return True
-
+ 
         if attempt == 1:
             print("Confirmation result: UNCLEAR - retrying once")
             speak("Mujhe jawab clear nahi mila. Sirf Yes ya No bolo.")
-
+ 
     print("Confirmation result: UNCLEAR")
     speak("Confirmation clear nahi tha. Safety ke liye action cancel kar diya.")
     security_log("UNCLEAR_CONFIRMATION", description)
     return False
-
-
+ 
+ 
 def add_history(command):
     data = _load_json(HISTORY_FILE, [])
     data.append({"time": datetime.datetime.now().isoformat(timespec="seconds"), "command": safe_log_text(command)})
     _save_json(HISTORY_FILE, data[-100:])
-
-
+ 
+ 
 def last_command():
     data = _load_json(HISTORY_FILE, [])
     if len(data) < 2:
         speak("Abhi koi previous command nahi hai.")
     else:
         speak(f"Aapki pichhli command thi: {data[-2]['command']}")
-
-
+ 
+ 
 def dynamic_open_app(name):
     name = re.sub(r"\b(open|kholo|chalao|start|app)\b", " ", name, flags=re.I)
     name = re.sub(r"\s+", " ", name).strip()
@@ -1462,10 +1492,10 @@ def dynamic_open_app(name):
     else:
         speak(f"{name} laptop mein installed app ke roop mein nahi mila.")
         if confirm_action(f"{name} ko Microsoft Edge mein web par search karke open karunga"):
-            webbrowser.open("https://www.google.com/search?q=" + urllib.parse.quote(name))
-            speak(f"{name} ka web search Edge mein open kar diya.")
-
-
+            webbrowser.open("https://www.google.com/search?btnI=1&q=" + urllib.parse.quote(name + " official site"))
+            speak(f"{name} ka online version Edge mein open kar diya.")
+ 
+ 
 def search_local_file(query, open_result=True):
     q = re.sub(r"\b(file|folder|pdf|dhundo|dhoondho|search|wali|wala|open|kholo)\b", " ", query, flags=re.I)
     q = re.sub(r"\s+", " ", q).strip().lower()
@@ -1495,21 +1525,21 @@ def search_local_file(query, open_result=True):
         if confirm_action(f"{matches[0].name} file ya folder open karunga"):
             os.startfile(str(matches[0]))
             speak(f"{matches[0].name} open kar diya.")
-
-
+ 
+ 
 def save_contact(name, number):
     contacts=_load_json(CONTACTS_FILE,{})
     contacts[name.lower().strip()]=number.strip()
     _save_json(CONTACTS_FILE,contacts)
     speak(f"{name} contact local Jarvis contacts mein save ho gaya.")
-
-
+ 
+ 
 def _paste_text(value):
     """Paste Unicode text safely into the currently focused Windows app."""
     pyperclip.copy(str(value))
     pyautogui.hotkey("ctrl", "v")
-
-
+ 
+ 
 def _jarvis_edge_driver():
     """
     Start a dedicated persistent Microsoft Edge session for Jarvis.
@@ -1519,12 +1549,12 @@ def _jarvis_edge_driver():
     import shutil
     import time
     from pathlib import Path
-
+ 
     profile_dir = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "JarvisAI" / "EdgeAutomationProfile"
     profile_dir.mkdir(parents=True, exist_ok=True)
-
+ 
     print("Using Jarvis persistent Edge profile:", profile_dir)
-
+ 
     # Chromium can leave these lock markers behind after a crash.
     # Remove only Jarvis' dedicated profile markers, never the normal Edge profile.
     for name in ("SingletonLock", "SingletonCookie", "SingletonSocket", "DevToolsActivePort"):
@@ -1535,7 +1565,7 @@ def _jarvis_edge_driver():
                 print("Removed stale Jarvis Edge marker:", name)
         except Exception as cleanup_error:
             print("Could not remove", name, ":", cleanup_error)
-
+ 
     options = webdriver.EdgeOptions()
     options.add_argument(f"--user-data-dir={profile_dir}")
     options.add_argument("--profile-directory=Default")
@@ -1549,13 +1579,13 @@ def _jarvis_edge_driver():
     options.add_argument("--remote-debugging-port=0")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
-
+ 
     try:
         driver = webdriver.Edge(options=options)
         driver.set_page_load_timeout(45)
         print("Jarvis Edge automation started successfully.")
         return driver
-
+ 
     except Exception as e:
         print("\n========== FULL EDGE ERROR ==========")
         print("Exception type:", type(e).__name__)
@@ -1564,7 +1594,7 @@ def _jarvis_edge_driver():
         print("Exception repr:")
         print(repr(e))
         print("=====================================\n")
-
+ 
         # If the persistent profile itself became corrupted, preserve it as backup
         # and retry once with a clean Jarvis-only profile. Normal Edge is untouched.
         try:
@@ -1576,7 +1606,7 @@ def _jarvis_edge_driver():
                     print("Old Jarvis Edge profile backed up to:", backup)
                 except Exception:
                     shutil.rmtree(profile_dir, ignore_errors=True)
-
+ 
             profile_dir.mkdir(parents=True, exist_ok=True)
             retry_options = webdriver.EdgeOptions()
             retry_options.add_argument(f"--user-data-dir={profile_dir}")
@@ -1589,7 +1619,7 @@ def _jarvis_edge_driver():
             retry_options.add_argument("--disable-notifications")
             retry_options.add_argument("--start-maximized")
             retry_options.add_argument("--remote-debugging-port=0")
-
+ 
             print("Retrying Edge once with a clean Jarvis automation profile...")
             driver = webdriver.Edge(options=retry_options)
             driver.set_page_load_timeout(45)
@@ -1606,8 +1636,8 @@ def _jarvis_edge_driver():
                 "Normal Edge ko close karna zaroori nahi hai. "
                 "CMD ka EDGE RETRY ERROR output bhejo."
             ) from retry_error
-
-
+ 
+ 
 def _wa_find_search_box(driver, timeout=60):
     """Find WhatsApp Web's contact search box using several resilient selectors."""
     wait = WebDriverWait(driver, timeout)
@@ -1631,15 +1661,15 @@ def _wa_find_search_box(driver, timeout=60):
         except Exception:
             pass
     raise TimeoutException(f"WhatsApp search box nahi mila: {last}")
-
-
+ 
+ 
 def _wa_open_contact(driver, contact_name):
     search = _wa_find_search_box(driver)
     search.click()
     search.send_keys(Keys.CONTROL, "a")
     search.send_keys(Keys.BACKSPACE)
     search.send_keys(contact_name)
-
+ 
     # Prefer exact visible saved-contact title.
     safe_name = contact_name.replace("'", "’")
     candidates = [
@@ -1654,7 +1684,7 @@ def _wa_open_contact(driver, contact_name):
         return
     except Exception:
         pass
-
+ 
     # Fallback: first visible search result; user already supplied the intended name.
     results = WebDriverWait(driver, 12).until(
         lambda d: [e for e in d.find_elements(By.XPATH, "//div[@role='listitem']") if e.is_displayed()]
@@ -1662,8 +1692,8 @@ def _wa_open_contact(driver, contact_name):
     if not results:
         raise TimeoutException(f"{contact_name} contact search result nahi mila.")
     results[0].click()
-
-
+ 
+ 
 def _xpath_literal(value):
     """Quote arbitrary text safely for an XPath string literal."""
     if "'" not in value:
@@ -1672,8 +1702,8 @@ def _xpath_literal(value):
         return '"' + value + '"'
     parts = value.split("'")
     return "concat(" + ", \"'\", ".join("'" + p + "'" for p in parts) + ")"
-
-
+ 
+ 
 def _wa_find_message_box(driver):
     selectors = [
         (By.XPATH, "//footer//div[@contenteditable='true' and @role='textbox']"),
@@ -1685,8 +1715,8 @@ def _wa_find_message_box(driver):
         except Exception:
             pass
     raise TimeoutException("WhatsApp message box nahi mila.")
-
-
+ 
+ 
 def whatsapp_message(contact, message):
     """Send using the already logged-in WhatsApp Desktop app on Windows."""
     contact = str(contact).strip()
@@ -1694,16 +1724,16 @@ def whatsapp_message(contact, message):
     if not contact or not message:
         speak("Contact ya message empty hai.")
         return False
-
+ 
     if not confirm_action(f"{contact} ko WhatsApp par ye message send karunga: {message}"):
         print("WHATSAPP DESKTOP | Cancelled by user before send.")
         return False
-
+ 
     try:
         speak(f"WhatsApp app mein {contact} ko message bhej raha hoon.")
         print("WHATSAPP DESKTOP | Contact:", contact)
         print("WHATSAPP DESKTOP | Message:", message)
-
+ 
         # Open the installed WhatsApp Desktop app; no browser/Selenium login.
         try:
             os.startfile("whatsapp:")
@@ -1713,9 +1743,9 @@ def whatsapp_message(contact, message):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-
+ 
         time.sleep(5)
-
+ 
         # Try to focus the WhatsApp window.
         try:
             import pygetwindow as gw
@@ -1728,7 +1758,7 @@ def whatsapp_message(contact, message):
                 time.sleep(1)
         except Exception as focus_error:
             print("WhatsApp focus note:", repr(focus_error))
-
+ 
         # Search the contact, open first match, paste exact message, send.
         pyautogui.hotkey("ctrl", "f")
         time.sleep(0.8)
@@ -1737,17 +1767,17 @@ def whatsapp_message(contact, message):
         time.sleep(2.0)
         pyautogui.press("enter")
         time.sleep(1.5)
-
+ 
         pyperclip.copy(message)
         pyautogui.hotkey("ctrl", "v")
         time.sleep(0.5)
         pyautogui.press("enter")
         time.sleep(1.0)
-
+ 
         print("WHATSAPP DESKTOP | Send action completed.")
         speak(f"{contact} ko WhatsApp message bhej diya.")
         return True
-
+ 
     except Exception as e:
         print("\n========== WHATSAPP DESKTOP ERROR ==========")
         print(type(e).__name__)
@@ -1756,8 +1786,8 @@ def whatsapp_message(contact, message):
         print("============================================\n")
         speak("WhatsApp Desktop se message send nahi ho paya. Terminal mein error check karo.")
         return False
-
-
+ 
+ 
 def email_message_saved_recipient(recipient_name, subject, body):
     """Compose and send Gmail through Selenium; final click only after confirmation."""
     driver = None
@@ -1766,25 +1796,25 @@ def email_message_saved_recipient(recipient_name, subject, body):
         driver = _jarvis_edge_driver()
         driver.get("https://mail.google.com/mail/u/0/#inbox")
         wait = WebDriverWait(driver, 90)
-
+ 
         compose = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[role='button'][gh='cm']")))
         compose.click()
-
+ 
         to_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[role='combobox'], textarea[name='to']")))
         to_box.send_keys(recipient_name)
         time.sleep(2)
         to_box.send_keys(Keys.ENTER)
-
+ 
         subject_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='subjectbox']")))
         subject_box.send_keys(subject)
-
+ 
         body_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div[role='textbox'][contenteditable='true']")))
         body_box.send_keys(body)
-
+ 
         if not confirm_action(f"{recipient_name} ko email send karu"):
             speak("Email send cancel kar diya. Draft Gmail mein rehne diya hai.")
             return
-
+ 
         # Click Gmail's Send button inside the compose dialog; do not type into IDLE.
         send_buttons = driver.find_elements(By.CSS_SELECTOR, "div[role='button'][data-tooltip^='Send'], div[role='button'][aria-label^='Send']")
         visible = [b for b in send_buttons if b.is_displayed() and b.is_enabled()]
@@ -1795,7 +1825,7 @@ def email_message_saved_recipient(recipient_name, subject, body):
         security_log("EMAIL_SEND", f"recipient={recipient_name}")
         print(f"REAL GMAIL SEND: {recipient_name}")
         speak("Email send kar diya.")
-
+ 
     except Exception as e:
         print("GMAIL SELENIUM ERROR:", repr(e))
         if "Selenium installed nahi" in str(e):
@@ -1804,8 +1834,8 @@ def email_message_saved_recipient(recipient_name, subject, body):
             speak("Email send nahi ho paya. Gmail login aur terminal error check karo.")
     finally:
         pass
-
-
+ 
+ 
 def instagram_message(username, message):
     """Open Instagram in the same Edge environment and prepare a DM.
     Instagram changes its DOM frequently, so several selectors are tried.
@@ -1855,8 +1885,8 @@ def instagram_message(username, message):
     except Exception as e:
         print("INSTAGRAM SELENIUM ERROR:", repr(e))
         speak("Instagram message send nahi ho paya. Edge login ya Instagram layout check karo.")
-
-
+ 
+ 
 def send_email_smtp(to_address, subject, body):
     sender=os.environ.get("JARVIS_EMAIL","").strip()
     password=os.environ.get("JARVIS_EMAIL_APP_PASSWORD","").strip()
@@ -1870,8 +1900,8 @@ def send_email_smtp(to_address, subject, body):
         speak("Email send ho gaya.")
     except Exception as e:
         print("EMAIL ERROR:",e); speak("Email send nahi ho paya.")
-
-
+ 
+ 
 def get_weather(query):
     place = re.sub(r"\b(aaj|kal|weather|mausam|kaisa|kaisi|hai|batao|tomorrow|today|in)\b", " ", query, flags=re.I)
     place = re.sub(r"\s+", " ", place).strip()
@@ -1892,8 +1922,8 @@ def get_weather(query):
             speak(f"Kal {place} mein maximum {day['maxtempC']} aur minimum {day['mintempC']} degree rahega. Mausam {desc} rehne ka forecast hai.")
     except Exception as e:
         print("WEATHER ERROR:", e); speak("Weather check nahi ho paya.")
-
-
+ 
+ 
 def get_news(topic="technology"):
     try:
         q = urllib.parse.quote(topic)
@@ -1906,32 +1936,32 @@ def get_news(topic="technology"):
             speak(item.findtext("title", ""))
     except Exception as e:
         print("NEWS ERROR:", e); speak("News fetch nahi ho payi.")
-
-
+ 
+ 
 def add_todo(task):
     data = _load_json(TODO_FILE, [])
     data.append({"task": task, "done": False, "created": datetime.datetime.now().isoformat(timespec="seconds")})
     _save_json(TODO_FILE, data); speak("Task to-do list mein add ho gaya.")
-
-
+ 
+ 
 def read_todos():
     data = [x for x in _load_json(TODO_FILE, []) if not x.get("done")]
     if not data: speak("To-do list empty hai."); return
     speak("Aapke tasks hain: " + "; ".join(x["task"] for x in data[:10]))
-
-
+ 
+ 
 def remember_note(note):
     data = _load_json(NOTES_FILE, [])
     data.append({"note": note, "time": datetime.datetime.now().isoformat(timespec="seconds")})
     _save_json(NOTES_FILE, data); speak("Yaad rakh liya.")
-
-
+ 
+ 
 def recall_notes():
     data = _load_json(NOTES_FILE, [])
     if not data: speak("Aapne abhi mujhe kuch yaad rakhne nahi bola."); return
     speak("Aapne mujhe yaad rakhne bola tha: " + "; ".join(x["note"] for x in data[-5:]))
-
-
+ 
+ 
 def clipboard_action(action):
     if action == "copy": pyautogui.hotkey("ctrl","c"); speak("Copy kar diya.")
     elif action == "paste": pyautogui.hotkey("ctrl","v"); speak("Paste kar diya.")
@@ -1940,8 +1970,8 @@ def clipboard_action(action):
             import tkinter as tk
             r=tk.Tk(); r.withdraw(); value=r.clipboard_get(); r.destroy(); speak("Clipboard mein hai: " + str(value)[:500])
         except Exception: speak("Clipboard text read nahi ho paya.")
-
-
+ 
+ 
 def set_brightness(value):
     try:
         import screen_brightness_control as sbc
@@ -1949,23 +1979,23 @@ def set_brightness(value):
         speak(f"Brightness {value} percent kar di.")
     except Exception as e:
         print("BRIGHTNESS ERROR:",e); speak("Brightness control ke liye screen-brightness-control package install hona chahiye.")
-
-
+ 
+ 
 def pc_details():
     vm=psutil.virtual_memory(); disk=psutil.disk_usage(str(Path.home().anchor)); bat=psutil.sensors_battery()
     parts=[f"RAM {vm.percent} percent use ho rahi hai", f"Disk {disk.percent} percent full hai", f"CPU {psutil.cpu_percent(0.5)} percent use ho raha hai"]
     if bat: parts.append(f"Battery {round(bat.percent)} percent hai")
     speak(". ".join(parts)+".")
-
-
+ 
+ 
 def create_text_file(topic, python_file=False):
     ext=".py" if python_file else ".txt"
     prompt = f"Write {'Python code' if python_file else 'clear notes'} for: {topic}. Return only the file content."
     content=ask_ai(prompt)
     safe=re.sub(r"[^A-Za-z0-9_-]+","_",topic).strip("_")[:40] or "jarvis_file"
     path=Path.cwd()/(safe+ext); path.write_text(content,encoding="utf-8"); os.startfile(str(path)); speak(f"{path.name} bana di.")
-
-
+ 
+ 
 def analyze_image_file(path, question):
     try:
         mime="image/png" if str(path).lower().endswith(".png") else "image/jpeg"
@@ -1974,14 +2004,14 @@ def analyze_image_file(path, question):
         speak(response.choices[0].message.content)
     except Exception as e:
         print("VISION ERROR:",e); speak("Image analyze nahi ho payi.")
-
-
+ 
+ 
 def screenshot_understand():
     path=Path(tempfile.gettempdir())/f"jarvis_screen_{int(time.time())}.png"
     pyautogui.screenshot().save(path)
     analyze_image_file(path,"Explain what is visible on this computer screen. If there is an error, explain it simply and suggest safe troubleshooting steps.")
-
-
+ 
+ 
 def camera_understand():
     global CAMERA_ACTIVE
     CAMERA_ACTIVE = True
@@ -1994,45 +2024,45 @@ def camera_understand():
         analyze_image_file(path,"Describe the visible scene and objects briefly. Do not identify people.")
     except Exception as e:
         print("CAMERA ERROR:",e); speak("Camera understanding ke liye opencv-python install hona chahiye.")
-
-
+ 
+ 
 def translate_with_ai(text, language):
     speak(ask_ai(f"Translate this into {language}. Return only the translation: {text}"))
-
-
+ 
+ 
 def study_mode(topic):
     speak(ask_ai(f"Teach me {topic} as a student in simple Hinglish, step by step, with one small example."))
-
-
+ 
+ 
 def quiz_mode(topic):
     q=ask_ai(f"Ask exactly one short viva/quiz question about {topic}. Do not give the answer yet.")
     answer=listen_answer(q)
     if answer: speak(ask_ai(f"Question: {q}\nStudent answer: {answer}\nCheck it briefly, correct mistakes, then give the ideal answer."))
-
-
+ 
+ 
 def coding_mode(request):
     result=ask_ai("Give a correct beginner-friendly solution for this programming request. Explain briefly, then provide code: "+request)
     print("\nCODING RESULT:\n",result); speak("Code aur explanation terminal mein de diya hai.")
-
-
+ 
+ 
 def calculate_with_ai(expr):
     speak(ask_ai("Calculate this carefully. Give the final answer first and a very short explanation: "+expr))
-
-
+ 
+ 
 def enable_startup():
     startup=Path(os.environ["APPDATA"])/"Microsoft/Windows/Start Menu/Programs/Startup"
     script=Path(__file__).resolve()
     bat=startup/"Jarvis_AutoStart.bat"
     bat.write_text(f'@echo off\nstart "" /min py -3.13 "{script}"\n',encoding="utf-8")
     speak("Windows startup mein Jarvis enable kar diya. Agli login par automatically start hoga.")
-
-
+ 
+ 
 def disable_startup():
     p=Path(os.environ["APPDATA"])/"Microsoft/Windows/Start Menu/Programs/Startup/Jarvis_AutoStart.bat"
     if p.exists(): p.unlink()
     speak("Jarvis startup disable kar diya.")
-
-
+ 
+ 
 def set_reminder_simple(text):
     now=datetime.datetime.now(); nums=[int(x) for x in re.findall(r"\d+",text)]
     target=None
@@ -2053,8 +2083,8 @@ def set_reminder_simple(text):
     delay=max(0,(target-now).total_seconds())
     def worker(): time.sleep(delay); speak(f"Reminder: {task}")
     threading.Thread(target=worker,daemon=True).start(); speak(f"Reminder {target.strftime('%d %B %I:%M %p')} ke liye set ho gaya.")
-
-
+ 
+ 
 def save_custom_command(text):
     # Example: jab main college mode bolu to chrome aur vs code kholo
     m=re.search(r"jab main (.+?) bolu to (.+)",text,re.I)
@@ -2062,8 +2092,8 @@ def save_custom_command(text):
     trigger=m.group(1).strip().lower(); action=m.group(2).strip()
     data=_load_json(CUSTOM_FILE,{ }); data[trigger]=action; _save_json(CUSTOM_FILE,data)
     speak(f"Custom command {trigger} save ho gaya.")
-
-
+ 
+ 
 def run_custom_command(text):
     data=_load_json(CUSTOM_FILE,{})
     if text not in data: return False
@@ -2073,24 +2103,24 @@ def run_custom_command(text):
     for part in re.split(r"\s+aur\s+|\s+and\s+",action,flags=re.I):
         dynamic_open_app(part)
     return True
-
-
+ 
+ 
 # ============================================================
 # SECURITY / PRIVACY LAYER
 # ============================================================
-
+ 
 PRIVACY_MODE = False
 SESSION_LOCKED = False
 CAMERA_ACTIVE = False
 AUTO_SLEEP_SECONDS = 180  # 3 minutes; change to 120-300 if you prefer
 LAST_ACTIVITY_TIME = time.time()
 SECURITY_LOG_FILE = Path.home() / "jarvis_security_log.txt"
-
+ 
 SENSITIVE_WORDS = [
     "password", "passcode", "otp", "one time password", "api key", "apikey",
     "secret key", "token", "pin", "cvv"
 ]
-
+ 
 # Common trusted apps. Unknown apps still require confirmation before search/open.
 APP_ALLOW_LIST = {
     "chrome", "google chrome", "notepad", "calculator", "calc", "paint",
@@ -2098,7 +2128,7 @@ APP_ALLOW_LIST = {
     "youtube", "whatsapp", "instagram", "vs code", "visual studio code",
     "android studio", "word", "microsoft word", "spotify"
 }
-
+ 
 # Important folders should never be modified silently.
 PROTECTED_PATHS = [
     Path.home(),
@@ -2106,28 +2136,28 @@ PROTECTED_PATHS = [
     Path.home() / "Desktop",
     Path.home() / "Pictures",
 ]
-
+ 
 DANGEROUS_COMMAND_PATTERNS = [
     r"\bformat\b", r"\bdel\s+/[sqf]", r"\brmdir\s+/s", r"\brd\s+/s",
     r"\bshutdown\s+/[sr]", r"\bdiskpart\b", r"\breg\s+delete\b",
     r"remove-item\s+.+-recurse", r"clear-disk", r"format-volume",
     r"invoke-expression", r"iex\b"
 ]
-
-
+ 
+ 
 def contains_private_information(text):
     t = (text or "").lower()
     return any(word in t for word in SENSITIVE_WORDS)
-
-
+ 
+ 
 def safe_log_text(text):
     if contains_private_information(text):
         return "[SENSITIVE COMMAND REDACTED]"
     # Do not store long message/email bodies in the security log.
     t = re.sub(r"\s+", " ", str(text)).strip()
     return t[:160]
-
-
+ 
+ 
 def security_log(event, detail=""):
     try:
         stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -2135,8 +2165,8 @@ def security_log(event, detail=""):
             f.write(f"[{stamp}] {event}: {safe_log_text(detail)}\n")
     except Exception:
         pass
-
-
+ 
+ 
 def print_security_indicator(state=None):
     if state == "privacy" or PRIVACY_MODE:
         mic = "OFF"
@@ -2147,8 +2177,8 @@ def print_security_indicator(state=None):
     cam = "ON" if CAMERA_ACTIVE else "OFF"
     lock = "LOCKED" if SESSION_LOCKED else "UNLOCKED"
     print(f"[SECURITY] MIC: {mic} | CAMERA: {cam} | SESSION: {lock}")
-
-
+ 
+ 
 def ctrl_alt_j_pressed():
     """Windows-only global key-state check. Does not use the microphone."""
     if os.name != "nt":
@@ -2161,8 +2191,8 @@ def ctrl_alt_j_pressed():
         return ctrl and alt and j
     except Exception:
         return False
-
-
+ 
+ 
 def wait_in_true_privacy_mode():
     """No microphone is opened here. Only Ctrl+Alt+J is polled locally."""
     global PRIVACY_MODE, LAST_ACTIVITY_TIME
@@ -2180,13 +2210,13 @@ def wait_in_true_privacy_mode():
             time.sleep(0.8)
             return
         time.sleep(0.08)
-
-
+ 
+ 
 def is_dangerous_shell_command(command):
     c = (command or "").lower().strip()
     return any(re.search(pattern, c, flags=re.I) for pattern in DANGEROUS_COMMAND_PATTERNS)
-
-
+ 
+ 
 def is_protected_path(path):
     try:
         target = Path(path).resolve()
@@ -2197,16 +2227,48 @@ def is_protected_path(path):
         return False
     except Exception:
         return True
-
-
+ 
+ 
 def update_activity():
     global LAST_ACTIVITY_TIME
     LAST_ACTIVITY_TIME = time.time()
-
+ 
 LAST_SCREENSHOT = None
 LAST_FOUND_FILE = None
-
-
+ 
+ 
+def change_brightness(delta):
+    try:
+        import screen_brightness_control as sbc
+        current = sbc.get_brightness()[0]
+        new_value = max(0, min(100, current + delta))
+        sbc.set_brightness(new_value)
+        speak(f"Brightness {new_value} percent kar di.")
+    except Exception as error:
+        print("BRIGHTNESS ERROR:", error)
+        speak("Brightness change nahi ho payi.")
+ 
+ 
+def parse_inline_whatsapp(original_text):
+    """'whatsapp par rahul ko good morning bhejo' -> ('rahul', 'good morning'). Only the NAME is needed."""
+    t = re.sub(r"^\s*jarvis[\s,]*", "", original_text.strip(), flags=re.I)
+    t = re.sub(r"[.!?\s]+$", "", t)
+    m = re.search(
+        r"(?:whatsapp\s+(?:par|pe|per)\s+)?(.+?)\s+ko\s+(?:whatsapp\s+(?:par|pe|per)\s+)?(?:(?:message|msg)\s+)?(.+?)\s+(?:bhejo|bhej do|bhej de|send karo|send kar do|bol do|likh do)$",
+        t, flags=re.I)
+    if not m:
+        return None
+    contact = re.sub(r"\b(whatsapp|par|pe|per)\b", " ", m.group(1), flags=re.I)
+    contact = re.sub(r"\s+", " ", contact).strip()
+    message = m.group(2).strip()
+    generic = {"message", "msg", "whatsapp message", "whatsapp msg", "whatsapp", "ek message", "koi message"}
+    if not contact or not message or message.lower() in generic:
+        return None
+    if message.lower().startswith(("file", "pdf", "photo", "image", "screenshot", "document")):
+        return None
+    return contact, message
+ 
+ 
 def find_local_file(query):
     """Newest file whose name contains all spoken words (Desktop, Documents, Downloads, Pictures)."""
     q = re.sub(r"\b(file|folder|pdf|dhundo|dhoondho|search|wali|wala|open|kholo|ki|ka|ko)\b", " ", query or "", flags=re.I)
@@ -2229,8 +2291,8 @@ def find_local_file(query):
                     if best is None or modified > best[0]:
                         best = (modified, p)
     return best[1] if best else None
-
-
+ 
+ 
 def send_file_whatsapp(contact, path):
     """Send a file with the installed WhatsApp Desktop app (clipboard file paste + Enter)."""
     path = str(Path(path).resolve())
@@ -2257,7 +2319,7 @@ def send_file_whatsapp(contact, path):
                 time.sleep(1)
         except Exception as focus_error:
             print("WhatsApp focus note:", repr(focus_error))
-
+ 
         pyautogui.hotkey("ctrl", "f")
         time.sleep(0.8)
         pyperclip.copy(contact)
@@ -2265,7 +2327,7 @@ def send_file_whatsapp(contact, path):
         time.sleep(2.0)
         pyautogui.press("enter")
         time.sleep(1.5)
-
+ 
         safe_path = path.replace("'", "''")
         subprocess.run(["powershell", "-NoProfile", "-Command", f"Set-Clipboard -Path '{safe_path}'"], check=True, timeout=20)
         time.sleep(0.8)
@@ -2280,8 +2342,8 @@ def send_file_whatsapp(contact, path):
         print("WHATSAPP FILE ERROR:", repr(error))
         speak("File send nahi ho payi. Terminal mein error check karo.")
         return False
-
-
+ 
+ 
 def run_whatsapp_file_dialog(text):
     t = text.lower()
     contact = ""
@@ -2297,7 +2359,7 @@ def run_whatsapp_file_dialog(text):
             if c:
                 contact = c
                 break
-
+ 
     path = None
     if "screenshot" in t:
         if not LAST_SCREENSHOT or not Path(LAST_SCREENSHOT).exists():
@@ -2309,7 +2371,7 @@ def run_whatsapp_file_dialog(text):
         query = listen_answer("Kaunsi file bhejni hai? File ka naam bolo.", timeout=8, phrase_time_limit=8)
         if query:
             path = find_local_file(query)
-
+ 
     if not path or not Path(path).exists():
         speak("File nahi mili. WhatsApp file send cancel kar diya.")
         return True
@@ -2320,8 +2382,8 @@ def run_whatsapp_file_dialog(text):
         return True
     send_file_whatsapp(contact, path)
     return True
-
-
+ 
+ 
 def run_whatsapp_dialog(prefilled_contact=""):
     """Own the complete WhatsApp conversation so follow-up speech cannot become normal commands."""
     contact = (prefilled_contact or "").strip()
@@ -2330,83 +2392,87 @@ def run_whatsapp_dialog(prefilled_contact=""):
     if not contact:
         speak("Contact naam sunai nahi diya. WhatsApp message cancel kar diya.")
         return True
-
+ 
     message = listen_answer(f"{contact} ko kya message bhejna hai?", timeout=10, phrase_time_limit=12)
     if not message:
         speak("Message sunai nahi diya. WhatsApp message cancel kar diya.")
         return True
-
+ 
     speak(f"Theek hai. {contact} ko message hai: {message}")
     whatsapp_message(contact, message)
     return True
-
-
+ 
+ 
 # ============================================================
 # COMMAND PROCESSOR
 # ============================================================
-
+ 
 def process_command(original_text):
-
+ 
     text = clean_command(
         original_text
     )
-
+ 
     add_history(original_text)
     update_activity()
-
+ 
     global PRIVACY_MODE, SESSION_LOCKED
-
+ 
     # True privacy mode: after this reply the main loop stops opening the microphone.
     if text in ["privacy mode", "privacy mode on", "privacy on", "mic off", "microphone off"]:
         speak("Privacy mode on. Microphone listening ab completely disabled hai. Wapas wake mode mein aane ke liye Control Alt J press kijiye.")
         PRIVACY_MODE = True
         security_log("PRIVACY_ON", "voice command")
         return "privacy"
-
+ 
     # Session lock protects sensitive features. This is a Jarvis feature lock, not Windows authentication.
     if text in ["jarvis lock", "lock jarvis", "session lock", "lock session"]:
         SESSION_LOCKED = True
         security_log("SESSION_LOCK", "enabled")
         speak("Jarvis sensitive features lock kar diye gaye hain. Unlock locally karne ke liye Control Alt J press karke unlock command use kijiye.")
         return True
-
+ 
     if text in ["jarvis unlock", "unlock jarvis", "session unlock", "unlock session"]:
         speak("Security ke liye session voice se unlock nahi hoga. Control Alt J locally press kijiye.")
         return True
-
+ 
     # Never repeat or intentionally store secrets spoken as commands.
     if contains_private_information(original_text):
         security_log("PRIVATE_INPUT", "redacted")
         speak("Security ke liye password, OTP, PIN ya API key ko main repeat ya memory mein save nahi karunga.")
         return True
-
+ 
     if SESSION_LOCKED:
         safe_while_locked = ["time", "date", "battery", "who are you", "tum kaun ho"]
         if not any(x in text for x in safe_while_locked):
             speak("Jarvis session locked hai. Sensitive commands abhi disabled hain.")
             security_log("BLOCKED_LOCKED_ACTION", text)
             return True
-
+ 
     # Custom learned commands
     if run_custom_command(text):
         return True
-
+ 
     # Multi-task: "screenshot lo phir whatsapp par rahul ko bhejo"
     if not text.startswith(("jab main", "translate", "yaad rakho", "remember", "mera task add", "task add", "todo add", "quiz")):
         chain_parts = [p.strip() for p in re.split(r"\s+(?:phir|fir|uske baad|and then|then)\s+", text) if p.strip()]
         if len(chain_parts) > 1 and all(len(p.split()) >= 2 for p in chain_parts):
+            previous_part = ""
             for part in chain_parts[:5]:
+                if "screenshot" in previous_part and "whatsapp" in part and "screenshot" not in part:
+                    part += " screenshot"
+                previous_part = part
                 chain_result = process_command(part)
                 if chain_result in ("privacy", "sleep") or chain_result is False:
                     return chain_result
             return True
-
-
-
+ 
+ 
+ 
     # ========================================================
     # SLEEP JARVIS
     # ========================================================
-
+ 
     if text in [
         "bye",
         "bye bye",
@@ -2422,13 +2488,13 @@ def process_command(original_text):
         "band ho jao",
         "jarvis band karo"
     ]:
-
+ 
         speak(
             "Okay, main sleep mode mein ja raha hoon. Hello Jarvis ya uth jao bolkar mujhe wapas jaga sakte ho."
         )
-
+ 
         return "sleep"
-
+ 
     # Complete exit remains available separately
     if text in [
         "exit",
@@ -2436,18 +2502,18 @@ def process_command(original_text):
         "close jarvis",
         "quit jarvis"
     ]:
-
+ 
         speak(
             "Okay, Jarvis completely band kar raha hoon. Bye."
         )
-
+ 
         return False
-
-
+ 
+ 
     # ========================================================
     # NAME / CREATOR
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -2456,14 +2522,14 @@ def process_command(original_text):
             "aap kaun ho"
         ]
     ):
-
+ 
         speak(
             "Main Jarvis hoon, aapka AI voice assistant."
         )
-
+ 
         return True
-
-
+ 
+ 
     if any(
         phrase in text
         for phrase in [
@@ -2473,20 +2539,20 @@ def process_command(original_text):
             "creator kaun"
         ]
     ):
-
+ 
         speak(
             "Mujhe Pratiksha Naik ne banaya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # ADVANCED FEATURES
     # ========================================================
     if "last command" in text or "pichhli command" in text or "last kya bola" in text:
         last_command(); return True
-
+ 
     if text.startswith("save contact") or text.startswith("contact save"):
         rest=re.sub(r"^(save contact|contact save)\s*","",original_text,flags=re.I).strip()
         name=rest or listen_answer("Contact ka naam bolo.")
@@ -2494,7 +2560,7 @@ def process_command(original_text):
         number=re.sub(r"[^+\d]","",number)
         if name and number and confirm_action(f"{name} ka contact number local file mein save karunga"): save_contact(name,number)
         return True
-
+ 
     # WHATSAPP FILE / SCREENSHOT SENDING
     if (
         "whatsapp" in text
@@ -2502,12 +2568,16 @@ def process_command(original_text):
         and any(k in text for k in ["bhejo", "bhej", "send"])
     ):
         return run_whatsapp_file_dialog(text)
-
+ 
     # NATURAL WHATSAPP COMMANDS - dedicated dialog owns all follow-up speech.
     whatsapp_intent = (
         "whatsapp" in text and any(k in text for k in ["message", "msg", "bhejo", "bhejna", "send", "karo"])
     )
     if whatsapp_intent:
+        inline = parse_inline_whatsapp(original_text)
+        if inline:
+            whatsapp_message(inline[0], inline[1])
+            return True
         contact = ""
         patterns = [
             r"whatsapp\s+(?:par|per|pe)\s+(.+?)\s+ko\s+(?:message|msg)",
@@ -2523,7 +2593,7 @@ def process_command(original_text):
                     contact = candidate
                     break
         return run_whatsapp_dialog(contact)
-
+ 
     # NATURAL INSTAGRAM DM COMMANDS
     instagram_intent = (
         "instagram" in text and any(k in text for k in ["message", "msg", "dm", "bhejo", "send", "karo"])
@@ -2545,7 +2615,7 @@ def process_command(original_text):
             if confirm_action(f"{recipient} ko Instagram par ye message send karunga: {message}"):
                 instagram_message(recipient, message)
         return True
-
+ 
     # NATURAL EMAIL COMMANDS - recipient may be a saved Gmail contact name.
     email_intent = (
         "email" in text and any(k in text for k in ["bhejo", "send", "message", "mail karo"])
@@ -2572,40 +2642,40 @@ def process_command(original_text):
             else:
                 email_message_saved_recipient(recipient,subject,body)
         return True
-
+ 
     if "weather" in text or "mausam" in text:
         get_weather(text); return True
-
+ 
     if "news" in text or "khabar" in text:
         topic=re.sub(r"\b(aaj|ki|news|khabar|batao|latest|today)\b"," ",text,flags=re.I); topic=re.sub(r"\s+"," ",topic).strip() or "technology"
         get_news(topic); return True
-
+ 
     if "reminder" in text or "yaad dilana" in text or "yaad dila dena" in text:
         if confirm_action(f"reminder set karunga: {original_text}"): set_reminder_simple(text)
         return True
-
+ 
     if text.startswith("mera task add karo") or text.startswith("task add karo") or text.startswith("todo add"):
         task=re.sub(r"^(mera )?task add karo[: ]*|^todo add[: ]*","",text).strip()
         if not task: task=listen_answer("Kaunsa task add karna hai?")
         if task and confirm_action(f"to-do list mein {task} add karunga"): add_todo(task)
         return True
-
+ 
     if "todo" in text or "to-do" in text or "mere task" in text:
         read_todos(); return True
-
+ 
     if text in ["forget all memory", "forget my memory", "jarvis memory clear", "sab memory bhool jao", "meri memory delete karo"]:
         if confirm_action("saved notes aur conversational context clear karunga"):
             reset_user_controlled_memory()
         return True
-
+ 
     if text.startswith("yaad rakho") or text.startswith("remember this"):
         note=re.sub(r"^(yaad rakho|remember this)[: ]*","",original_text,flags=re.I).strip()
         if note and confirm_action(f"note memory mein save karunga: {note}"): remember_note(note)
         return True
-
+ 
     if "maine kya yaad" in text or "notes memory" in text or "kya yaad rakhne" in text:
         recall_notes(); return True
-
+ 
     if text in ["copy","copy karo"]:
         if confirm_action("selected content copy karunga"): clipboard_action("copy")
         return True
@@ -2615,7 +2685,7 @@ def process_command(original_text):
     if "clipboard" in text:
         if confirm_action("clipboard ka text padhunga"): clipboard_action("read")
         return True
-
+ 
     if "brightness" in text and not re.findall(r"\d+", text) and any(
         k in text for k in ["badhao", "badao", "jyada", "zyada", "up", "increase", "kam", "down", "decrease", "low", "ghatao"]
     ):
@@ -2630,23 +2700,23 @@ def process_command(original_text):
             print("BRIGHTNESS ERROR:", error)
             speak("Brightness change nahi ho payi.")
         return True
-
+ 
     if "brightness" in text:
         nums=re.findall(r"\d+",text)
         if nums and confirm_action(f"brightness {nums[0]} percent karunga"): set_brightness(nums[0])
         elif not nums: speak("Brightness kitne percent karni hai?")
         return True
-
+ 
     if "wifi" in text or "wi-fi" in text:
         if "status" in text:
             os.system("netsh wlan show interfaces") ; speak("Wi-Fi status terminal mein dikha diya hai.")
         elif confirm_action("Wi-Fi settings open karunga"): os.system("start ms-settings:network-wifi")
         return True
-
+ 
     if "bluetooth" in text:
         if confirm_action("Bluetooth settings open karunga"): os.system("start ms-settings:bluetooth")
         return True
-
+ 
     if any(x in text for x in ["ram","storage","disk usage","pc information","pc info","running apps"]):
         pc_details()
         if "running apps" in text:
@@ -2654,15 +2724,15 @@ def process_command(original_text):
             print("\nRunning processes:\n"+"\n".join(names))
             speak("Running apps terminal mein dikha diye hain.")
         return True
-
+ 
     if "screenshot samjho" in text or "screen samjho" in text or "screen error" in text:
         if confirm_action("screen ka screenshot lekar AI se analyze karunga"): screenshot_understand()
         return True
-
+ 
     if "camera se dekho" in text or "camera analyze" in text or "camera se batao" in text:
         if confirm_action("camera se ek image capture karke analyze karunga"): camera_understand()
         return True
-
+ 
     if text.startswith("translate ") or "translate karo" in text:
         lang="English"
         for l in ["Marathi","Hindi","English"]:
@@ -2670,56 +2740,56 @@ def process_command(original_text):
         content=re.sub(r"\b(translate|karo|into|in|marathi|hindi|english)\b"," ",original_text,flags=re.I); content=re.sub(r"\s+"," ",content).strip()
         if content: translate_with_ai(content,lang)
         return True
-
+ 
     if text.startswith("mujhe ") and any(x in text for x in ["padha","padhai","teach"]):
         topic=re.sub(r"\b(mujhe|padha|padhai|teach|karo)\b"," ",text); study_mode(re.sub(r"\s+"," ",topic).strip()); return True
-
+ 
     if "quiz" in text or "viva start" in text:
         topic=re.sub(r"\b(quiz|viva|start|karo|lo|mera|mujhe)\b"," ",text); topic=re.sub(r"\s+"," ",topic).strip() or "computer engineering"
         quiz_mode(topic); return True
-
+ 
     if any(x in text for x in ["code banao","program banao","coding mode"]):
         coding_mode(original_text); return True
-
+ 
     if any(x in text for x in ["calculate","calculate karo","percent of","percentage","convert "]):
         calculate_with_ai(original_text); return True
-
+ 
     if text.startswith("jab main ") and " bolu to " in text:
         if confirm_action("ye custom command save karunga"): save_custom_command(original_text)
         return True
-
+ 
     if "startup enable" in text or "windows ke sath start" in text or "auto start jarvis" in text:
         if confirm_action("Windows login ke saath Jarvis auto-start enable karunga"): enable_startup()
         return True
     if "startup disable" in text:
         if confirm_action("Jarvis auto-start disable karunga"): disable_startup()
         return True
-
+ 
     if any(x in text for x in ["file dhundo","folder dhundo","pdf dhundo","file search","folder search"]):
         if confirm_action(f"local files mein {original_text} search karunga"): search_local_file(text,open_result=True)
         return True
-
+ 
     if any(x in text for x in ["downloads kholo","documents kholo","desktop kholo"]):
         target=Path.home()/("Downloads" if "downloads" in text else "Documents" if "documents" in text else "Desktop")
         if confirm_action(f"{target.name} folder open karunga"): os.startfile(str(target))
         return True
-
+ 
     if text.endswith(".py kholo") or text.endswith(".pdf kholo") or text.endswith(".txt kholo"):
         if confirm_action(f"{original_text} search karke open karunga"): search_local_file(text,open_result=True)
         return True
-
+ 
     if "text file banao" in text or "python file banao" in text:
         topic=re.sub(r"\b(text|python|file|banao|bana do|ki|ka)\b"," ",text); topic=re.sub(r"\s+"," ",topic).strip() or "Jarvis notes"
         if confirm_action(f"{topic} ki file banaunga"): create_text_file(topic,"python" in text)
         return True
-
+ 
     # Generic installed app opener: "VS Code kholo", "Word kholo", etc.
     if text.endswith(" kholo") or text.startswith("open "):
         protected=["youtube","whatsapp","instagram","chrome","notepad","calculator","paint","camera","settings","file explorer","cmd"]
         if not any(p in text for p in protected):
             if confirm_action(f"{original_text} open karne ki koshish karunga"): dynamic_open_app(text)
             return True
-
+ 
     # ========================================================
     # NOTEPAD
     # Short commands:
@@ -2728,7 +2798,7 @@ def process_command(original_text):
     # notepad kholo
     # open notepad
     # ========================================================
-
+ 
     if (
         text in [
             "note",
@@ -2740,17 +2810,17 @@ def process_command(original_text):
         ]
         or "notepad open" in text
     ):
-
+ 
         if confirm_action("Notepad open karunga"):
             open_notepad()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # CALCULATOR
     # ========================================================
-
+ 
     if text in [
         "calculator",
         "calculator kholo",
@@ -2759,33 +2829,33 @@ def process_command(original_text):
         "open calculator",
         "open calc"
     ]:
-
+ 
         if confirm_action("Calculator open karunga"):
             open_calculator()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # PAINT
     # ========================================================
-
+ 
     if text in [
         "paint",
         "paint kholo",
         "open paint"
     ]:
-
+ 
         if confirm_action("Paint open karunga"):
             open_paint()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # CAMERA
     # ========================================================
-
+ 
     if text in [
         "camera",
         "camera kholo",
@@ -2793,17 +2863,17 @@ def process_command(original_text):
         "selfie",
         "selfie camera"
     ]:
-
+ 
         if confirm_action("Camera app open karunga"):
             open_camera()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # SETTINGS
     # ========================================================
-
+ 
     if text in [
         "settings",
         "setting",
@@ -2812,17 +2882,17 @@ def process_command(original_text):
         "open settings",
         "open setting"
     ]:
-
+ 
         if confirm_action("Windows Settings open karunga"):
             open_settings()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # FILE EXPLORER
     # ========================================================
-
+ 
     if text in [
         "files",
         "file",
@@ -2836,17 +2906,17 @@ def process_command(original_text):
         "open file explorer",
         "open files"
     ]:
-
+ 
         if confirm_action("File Explorer open karunga"):
             open_explorer()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # CMD
     # ========================================================
-
+ 
     if text in [
         "cmd",
         "cmd kholo",
@@ -2855,17 +2925,17 @@ def process_command(original_text):
         "open cmd",
         "open command prompt"
     ]:
-
+ 
         if confirm_action("Command Prompt open karunga"):
             open_cmd()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # CHROME
     # ========================================================
-
+ 
     if text in [
         "chrome",
         "chrome kholo",
@@ -2873,17 +2943,17 @@ def process_command(original_text):
         "browser",
         "browser kholo"
     ]:
-
+ 
         if confirm_action("Microsoft Edge open karunga"):
             open_chrome()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # YOUTUBE - OPEN ENDED USER INPUT
     # ========================================================
-
+ 
     if text in [
         "youtube",
         "youtube kholo",
@@ -2894,37 +2964,37 @@ def process_command(original_text):
         "youtube pe kuch play karo",
         "kuch play karo"
     ]:
-
+ 
         if confirm_action("YouTube open karunga"):
             play_youtube_anything()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # WHATSAPP
     # ========================================================
-
+ 
     if text in [
         "whatsapp",
         "whatsapp kholo",
         "open whatsapp",
         "whatsapp web"
     ]:
-
+ 
         if confirm_action("WhatsApp open karunga"):
             try:
                 os.startfile("whatsapp:")
             except Exception:
                 open_whatsapp()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # INSTAGRAM
     # ========================================================
-
+ 
     if text in [
         "instagram",
         "instagram kholo",
@@ -2932,17 +3002,25 @@ def process_command(original_text):
         "insta",
         "insta kholo"
     ]:
-
+ 
         if confirm_action("Instagram open karunga"):
             open_instagram()
-
+ 
         return True
-
-
+ 
+ 
+    if "youtube" in text and any(k in text for k in ["search", "play", "chalao", "bajao", "dikhao", "dekho"]):
+        yt_query = re.sub(
+            r"\b(youtube|par|pe|per|mein|me|search|karo|kar|play|aur|uska|uski|chalao|bajao|dikhao|dekho|ye|yeh)\b",
+            " ", text)
+        yt_query = re.sub(r"\s+", " ", yt_query).strip()
+        play_youtube_anything(yt_query or None)
+        return True
+ 
     # ========================================================
     # GOOGLE SEARCH
     # ========================================================
-
+ 
     if (
         "google par" in text
         or "google pe" in text
@@ -2954,28 +3032,28 @@ def process_command(original_text):
         or "dhoondho" in text
         or "dhundo" in text
     ):
-
+ 
         if confirm_action(f"web par search karunga: {original_text}"):
             google_search(text)
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # YOUTUBE DIRECT SEARCH / PLAY
     # Examples: Play Believer, Play Python tutorial, Play anything
     # ========================================================
-
+ 
     if text.startswith("play "):
-
+ 
         query = text[5:].strip()
-
+ 
         if confirm_action(f"YouTube par {query} search ya play karunga"):
             play_youtube_anything(query)
-
+ 
         return True
-
-
+ 
+ 
     if (
         text.endswith(" bajao")
         or text.endswith(" baja do")
@@ -2988,9 +3066,9 @@ def process_command(original_text):
         or "gaana chalao" in text
         or "gana chalao" in text
     ):
-
+ 
         query = text
-
+ 
         for ending in [
             " song bajao",
             " song chalao",
@@ -3006,17 +3084,17 @@ def process_command(original_text):
             if query.endswith(ending):
                 query = query[:-len(ending)].strip()
                 break
-
+ 
         if confirm_action(f"YouTube par {query if query else 'requested media'} search ya play karunga"):
             play_youtube_anything(query if query else None)
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # VOLUME UP
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3031,21 +3109,21 @@ def process_command(original_text):
             "sound badhao"
         ]
     ):
-
+ 
         for _ in range(5):
             pyautogui.press("volumeup")
-
+ 
         speak(
             "Volume badha diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # VOLUME DOWN
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3059,43 +3137,43 @@ def process_command(original_text):
             "sound kam"
         ]
     ):
-
+ 
         for _ in range(5):
             pyautogui.press("volumedown")
-
+ 
         speak(
             "Volume kam kar diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # MUTE
     # ========================================================
-
+ 
     if text in [
         "mute",
         "mute karo",
         "sound mute",
         "volume mute"
     ]:
-
+ 
         pyautogui.press(
             "volumemute"
         )
-
+ 
         speak(
             "Mute toggle kar diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # MEDIA PLAY / PAUSE
     # ========================================================
-
+ 
     if text in [
         "pause",
         "pause karo",
@@ -3105,22 +3183,22 @@ def process_command(original_text):
         "play pause",
         "music pause"
     ]:
-
+ 
         pyautogui.press(
             "playpause"
         )
-
+ 
         speak(
             "Media play pause kar diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # MINIMIZE ALL WINDOWS
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3132,23 +3210,23 @@ def process_command(original_text):
             "sab chhupao"
         ]
     ):
-
+ 
         pyautogui.hotkey(
             "win",
             "d"
         )
-
+ 
         speak(
             "Saari windows minimize kar di hain."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # CLOSE CURRENT WINDOW
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3160,23 +3238,23 @@ def process_command(original_text):
             "app band karo"
         ]
     ):
-
+ 
         speak(
             "Current window close kar raha hoon."
         )
-
+ 
         pyautogui.hotkey(
             "alt",
             "f4"
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # LOCK LAPTOP
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3187,119 +3265,119 @@ def process_command(original_text):
             "pc lock"
         ]
     ):
-
+ 
         speak(
             "Laptop lock kar raha hoon."
         )
-
+ 
         os.system(
             "rundll32.exe user32.dll,LockWorkStation"
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # VOICE TYPING
     # ========================================================
-
+ 
     if (
         text.startswith("type karo ")
         or text.startswith("type ")
         or text.startswith("likho ")
         or text.startswith("write ")
     ):
-
+ 
         typing_text = text
-
+ 
         prefixes = [
             "type karo ",
             "type ",
             "likho ",
             "write "
         ]
-
+ 
         for prefix in prefixes:
-
+ 
             if typing_text.startswith(prefix):
-
+ 
                 typing_text = typing_text[
                     len(prefix):
                 ]
-
+ 
                 break
-
+ 
         typing_text = typing_text.strip()
-
+ 
         if typing_text:
-
+ 
             speak(
                 "Type kar raha hoon."
             )
-
+ 
             time.sleep(0.5)
-
+ 
             pyautogui.write(
                 typing_text,
                 interval=0.04
             )
-
+ 
         else:
-
+ 
             speak(
                 "Kya type karna hai?"
             )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # ENTER KEY
     # ========================================================
-
+ 
     if text in [
         "enter",
         "enter dabao",
         "press enter",
         "enter press karo"
     ]:
-
+ 
         pyautogui.press(
             "enter"
         )
-
+ 
         speak(
             "Enter press kar diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # BACKSPACE
     # ========================================================
-
+ 
     if text in [
         "backspace",
         "backspace dabao",
         "delete last"
     ]:
-
+ 
         pyautogui.press(
             "backspace"
         )
-
+ 
         speak(
             "Backspace press kar diya hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # BATTERY / SYSTEM STATUS
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3312,16 +3390,16 @@ def process_command(original_text):
             "laptop status"
         ]
     ):
-
+ 
         system_status()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # SCREENSHOT
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3332,16 +3410,16 @@ def process_command(original_text):
             "screenshot lena"
         ]
     ):
-
+ 
         take_screenshot()
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # TIMER
     # ========================================================
-
+ 
     if (
         "timer" in text
         or (
@@ -3353,27 +3431,27 @@ def process_command(original_text):
             and "timer" in text
         )
     ):
-
+ 
         set_timer_from_text(text)
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # ALARM
     # ========================================================
-
+ 
     if "alarm" in text:
-
+ 
         set_alarm_from_text(text)
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # TIME
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3386,23 +3464,23 @@ def process_command(original_text):
             "samay kya hai"
         ]
     ):
-
+ 
         current_time = (
             datetime.datetime.now()
             .strftime("%I:%M %p")
         )
-
+ 
         speak(
             f"Abhi {current_time} hue hain."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # DATE
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3415,23 +3493,23 @@ def process_command(original_text):
             "today's date"
         ]
     ):
-
+ 
         current_date = (
             datetime.datetime.now()
             .strftime("%d %B %Y")
         )
-
+ 
         speak(
             f"Aaj {current_date} hai."
         )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # AI PDF
     # ========================================================
-
+ 
     if (
         "pdf banao" in text
         or "pdf bana do" in text
@@ -3439,9 +3517,9 @@ def process_command(original_text):
         or "make pdf" in text
         or "pdf tayyar karo" in text
     ):
-
+ 
         topic = text
-
+ 
         remove_words = [
             "jarvis",
             "mujhe",
@@ -3455,38 +3533,38 @@ def process_command(original_text):
             "ka",
             "ki"
         ]
-
+ 
         for word in remove_words:
-
+ 
             topic = topic.replace(
                 word,
                 " "
             )
-
+ 
         topic = re.sub(
             r"\s+",
             " ",
             topic
         ).strip()
-
+ 
         if topic:
-
+ 
             if confirm_action(f"{topic} topic par PDF generate karunga"):
                 create_pdf_file(topic)
-
+ 
         else:
-
+ 
             speak(
                 "Kis topic par PDF banani hai?"
             )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # AI IMAGE
     # ========================================================
-
+ 
     if any(
         phrase in text
         for phrase in [
@@ -3499,9 +3577,9 @@ def process_command(original_text):
             "create image"
         ]
     ):
-
+ 
         topic = text
-
+ 
         remove_words = [
             "jarvis",
             "mujhe",
@@ -3513,39 +3591,39 @@ def process_command(original_text):
             "generate image",
             "create image"
         ]
-
+ 
         for word in remove_words:
-
+ 
             topic = topic.replace(
                 word,
                 " "
             )
-
+ 
         topic = re.sub(
             r"\s+",
             " ",
             topic
         ).strip()
-
+ 
         if topic:
-
+ 
             if confirm_action(f"{topic} ke liye AI image generate karke save karunga"):
                 create_ai_image(topic)
-
+ 
         else:
-
+ 
             speak(
                 "Kiski image banani hai?"
             )
-
+ 
         return True
-
-
+ 
+ 
     # ========================================================
     # AI NLU + CONTEXT-AWARE TASK PLANNING (V12 ADDITION)
     # Existing explicit command handlers above retain priority.
     # ========================================================
-
+ 
     plan = classify_and_plan_command(original_text)
     if plan:
         intent = plan.get("intent")
@@ -3561,23 +3639,23 @@ def process_command(original_text):
             speak(plan.get("reply") or "Thoda aur clearly batao ki kya karna hai.")
             return True
         # Ordinary conversation and questions use the existing conversational AI memory.
-
+ 
     # If the API key is unavailable, still respond supportively to clear mood-related messages.
     if not GROQ_API_KEY:
         mood_reply = local_mood_response(original_text)
         if mood_reply:
             speak(mood_reply)
             return True
-
+ 
     reply = ask_ai(original_text)
     speak(reply)
     return True
-
-
+ 
+ 
 # ============================================================
 # WAKE / SLEEP MODE
 # ============================================================
-
+ 
 WAKE_COMMANDS = [
     "hello jarvis",
     "hey jarvis",
@@ -3593,13 +3671,13 @@ WAKE_COMMANDS = [
     "wake up",
     "wake up jarvis"
 ]
-
-
+ 
+ 
 def is_wake_command(text):
     cleaned = (text or "").lower().strip()
     cleaned = re.sub(r"[^a-z0-9\s]", " ", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
-
+ 
     # Google STT often hears "Jarvis" as "jar", "service", etc.
     direct = [
         "hello jarvis", "hello jar", "hey jarvis", "hey jar", "hi jarvis",
@@ -3608,17 +3686,17 @@ def is_wake_command(text):
     ]
     if any(x in cleaned for x in direct):
         return True
-
+ 
     words = cleaned.split()
     if words and words[0] in ("hello", "hey", "hi"):
         return any(w.startswith("jar") for w in words[1:3])
     return False
-
-
+ 
+ 
 def wake_reply():
-
+ 
     hour = datetime.datetime.now().hour
-
+ 
     if 5 <= hour < 12:
         greeting = "Good morning"
     elif 12 <= hour < 17:
@@ -3627,12 +3705,12 @@ def wake_reply():
         greeting = "Good evening"
     else:
         greeting = "Hello"
-
+ 
     speak(
         f"{greeting}! Jarvis is awake. How can I help you?"
     )
-
-
+ 
+ 
 def security_hotkey_monitor():
     """Local Ctrl+Alt+J monitor for unlocking a Jarvis session."""
     global SESSION_LOCKED, LAST_ACTIVITY_TIME
@@ -3650,14 +3728,14 @@ def security_hotkey_monitor():
             time.sleep(0.08)
         except Exception:
             time.sleep(0.2)
-
-
+ 
+ 
 threading.Thread(target=security_hotkey_monitor, daemon=True).start()
-
+ 
 # ============================================================
 # STARTUP
 # ============================================================
-
+ 
 print("\n")
 print("============================================")
 print("             JARVIS STARTING")
@@ -3668,30 +3746,30 @@ print_security_indicator("wake")
 print("Wake command: Hello Jarvis / Good morning / Uth jao")
 print("Safety mode: confirmation required before open/send/web/file actions")
 calibrate_microphone_once()
-
+ 
 # Start quietly in sleep mode.
 # Program microphone se wake command sunta rahega.
 jarvis_awake = False
-
-
+ 
+ 
 # ============================================================
 # MAIN CONTINUOUS LOOP
 # ============================================================
-
+ 
 def jarvis_voice_loop():
     global jarvis_awake, _last_console_mode
     while True:
-
+ 
         try:
-
+ 
             print("\n==========================================")
-
+ 
             # TRUE PRIVACY MODE: do not create/open sr.Microphone at all.
             if PRIVACY_MODE:
                 jarvis_awake = False
                 wait_in_true_privacy_mode()
                 continue
-
+ 
             # Auto-sleep after inactivity while active.
             if jarvis_awake and (time.time() - LAST_ACTIVITY_TIME) >= AUTO_SLEEP_SECONDS:
                 jarvis_awake = False
@@ -3699,7 +3777,7 @@ def jarvis_voice_loop():
                 security_log("AUTO_SLEEP", f"after {AUTO_SLEEP_SECONDS} seconds")
                 print("Auto sleep: inactivity timeout.")
                 print_security_indicator("wake")
-
+ 
             if jarvis_awake:
                 if globals().get("_last_console_mode") != "active":
                     print("Jarvis AWAKE - Kuch bhi boliye:")
@@ -3710,137 +3788,137 @@ def jarvis_voice_loop():
                     print("Jarvis SLEEPING - 'Hello Jarvis' ya 'Uth jao' boliye:")
                     print_security_indicator("wake")
                     _last_console_mode = "sleep"
-
+ 
             gui_status("LISTENING", "Wake word sun raha hoon..." if not jarvis_awake else "Boliye, main sun raha hoon...")
             audio = capture_voice(
                 timeout=3.5 if not jarvis_awake else 5,
                 phrase_time_limit=5 if not jarvis_awake else 10
             )
-
+ 
             # ====================================================
             # SPEECH RECOGNITION
             # ====================================================
-
+ 
             text = recognize_voice(audio)
-
+ 
             print(
                 "Aapne kaha:",
                 text
             )
             gui_log("YOU", text)
             gui_status("THINKING", "Processing command...")
-
+ 
             update_activity()
-
+ 
             # ====================================================
             # SLEEP MODE - ONLY WAKE COMMANDS ARE ACCEPTED
             # ====================================================
-
+ 
             if not jarvis_awake:
-
+ 
                 if is_wake_command(text):
-
+ 
                     jarvis_awake = True
                     _last_console_mode = None
                     gui_status("READY", "Awake • Ready when you are")
                     wake_reply()
-
+ 
                 # Other speech is intentionally ignored while sleeping.
                 continue
-
+ 
             # ====================================================
             # ALREADY AWAKE + WAKE COMMAND
             # ====================================================
-
+ 
             if is_wake_command(text):
-
+ 
                 speak(
                     "Yes, Jarvis is already awake. Bataiye kya karna hai?"
                 )
-
+ 
                 continue
-
+ 
             # ====================================================
             # PROCESS NORMAL COMMAND
             # ====================================================
-
+ 
             command_result = process_command(
                 text
             )
-
+ 
             # Privacy command received
             if command_result == "privacy":
                 jarvis_awake = False
                 continue
-
+ 
             # Sleep command received
             if command_result == "sleep":
-
+ 
                 jarvis_awake = False
                 _last_console_mode = None
                 gui_status("SLEEPING", "Wake word only • Say Hello Jarvis")
                 continue
-
+ 
             # Complete exit command received
             if command_result is False:
                 break
-
+ 
         # ========================================================
         # NO SPEECH
         # ========================================================
-
+ 
         except sr.WaitTimeoutError:
-
+ 
             if jarvis_awake:
                 print("Kuch sunai nahi diya...")
             else:
                 pass
-
+ 
         # ========================================================
         # COULD NOT UNDERSTAND
         # ========================================================
-
+ 
         except sr.UnknownValueError:
-
+ 
             if jarvis_awake:
                 print("Aawaz samajh nahi aayi...")
             else:
                 pass
-
+ 
         # ========================================================
         # GOOGLE SPEECH RECOGNITION ERROR
         # ========================================================
-
+ 
         except sr.RequestError as error:
-
+ 
             print(
                 "\nSPEECH RECOGNITION ERROR:",
                 error
             )
-
+ 
             if jarvis_awake:
                 speak(
                     "Speech recognition service se connect nahi ho raha."
                 )
-
+ 
         # ========================================================
         # OTHER ERROR
         # ========================================================
-
+ 
         except KeyboardInterrupt:
-
+ 
             print(
                 "\nJarvis manually stop kiya gaya."
             )
-
+ 
             break
-
+ 
         except Exception as error:
-
+ 
             print("\nPROGRAM ERROR:")
             print(type(error).__name__)
             print(error)
-
+ 
             gui_status("ERROR", f"{type(error).__name__}: retrying microphone")
             time.sleep(0.8)
             if jarvis_awake and not isinstance(error, AssertionError):
@@ -3848,24 +3926,24 @@ def jarvis_voice_loop():
 # ============================================================
 # PROFESSIONAL DESKTOP GUI
 # ============================================================
-
+ 
 class JarvisGUI:
     def __init__(self):
         if not GUI_AVAILABLE:
             raise RuntimeError("customtkinter missing. Install: py -3.13 -m pip install customtkinter")
-
+ 
         ctk.set_appearance_mode("dark")
         self.root = ctk.CTk()
         self.root.title("JARVIS • Active AI Companion")
         self.root.geometry("1180x760")
         self.root.minsize(980, 650)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
-
+ 
         self.state = "SLEEPING"
         self.phase = 0.0
         self.messages_count = 0
         self.state_detail = "Say ‘Hello Jarvis’ when you need me"
-
+ 
         self.header = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
         self.header.pack(fill="x", padx=30, pady=(22, 10))
         title_box = ctk.CTkFrame(self.header, fg_color="transparent")
@@ -3876,18 +3954,18 @@ class JarvisGUI:
         self.clock.pack(side="right")
         self.online = ctk.CTkLabel(self.header, text="●  ONLINE", font=("Segoe UI Semibold", 12), text_color="#77e3bd")
         self.online.pack(side="right", padx=24)
-
+ 
         self.body = ctk.CTkFrame(self.root, corner_radius=22, border_width=1, border_color="#1d303a")
         self.body.pack(fill="both", expand=True, padx=30, pady=10)
         self.body.grid_columnconfigure(0, weight=3)
         self.body.grid_columnconfigure(1, weight=2)
         self.body.grid_rowconfigure(0, weight=1)
-
+ 
         self.visual = ctk.CTkFrame(self.body, fg_color="transparent")
         self.visual.grid(row=0, column=0, sticky="nsew", padx=18, pady=18)
         self.canvas = tk.Canvas(self.visual, bg="#0b1116", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
-
+ 
         self.chat_frame = ctk.CTkFrame(self.body, corner_radius=18, border_width=1, border_color="#20343e")
         self.chat_frame.grid(row=0, column=1, sticky="nsew", padx=(0,18), pady=18)
         chat_head = ctk.CTkFrame(self.chat_frame, fg_color="transparent")
@@ -3898,7 +3976,7 @@ class JarvisGUI:
         self.chat = ctk.CTkTextbox(self.chat_frame, wrap="word", font=("Segoe UI", 14), corner_radius=12, border_width=0)
         self.chat.pack(fill="both", expand=True, padx=14, pady=(0,14))
         self.chat.configure(state="disabled")
-
+ 
         self.footer = ctk.CTkFrame(self.root, corner_radius=16, border_width=1, border_color="#1d303a")
         self.footer.pack(fill="x", padx=30, pady=(0,22))
         self.status = ctk.CTkLabel(self.footer, text="SLEEPING", font=("Segoe UI Semibold", 14))
@@ -3907,10 +3985,10 @@ class JarvisGUI:
         self.detail.pack(side="left", padx=8)
         self.privacy = ctk.CTkLabel(self.footer, text="VOICE READY  •  LOCAL CONTROLS", font=("Segoe UI", 11), text_color="#6f8b99")
         self.privacy.pack(side="right", padx=18)
-
+ 
         self.root.after(80, self.animate)
         self.root.after(200, self.update_clock)
-
+ 
     def friendly_detail(self, state, detail=None):
         if detail:
             return str(detail)[:115]
@@ -3922,7 +4000,7 @@ class JarvisGUI:
             "READY": "Ready when you are",
             "ERROR": "Something needs attention",
         }.get(state, "Ready when you are")
-
+ 
     def set_state(self, state, detail=None):
         def apply():
             self.state = str(state).upper()
@@ -3930,7 +4008,7 @@ class JarvisGUI:
             self.state_detail = self.friendly_detail(self.state, detail)
             self.detail.configure(text=self.state_detail)
         self.root.after(0, apply)
-
+ 
     def add_message(self, role, text):
         def apply():
             self.messages_count += 1
@@ -3941,18 +4019,18 @@ class JarvisGUI:
             self.chat.see("end")
             self.chat.configure(state="disabled")
         self.root.after(0, apply)
-
+ 
     def update_clock(self):
         self.clock.configure(text=datetime.datetime.now().strftime("%d %b  •  %I:%M:%S %p"))
         self.root.after(1000, self.update_clock)
-
+ 
     def animate(self):
         self.phase += 0.055
         w = max(self.canvas.winfo_width(), 440)
         h = max(self.canvas.winfo_height(), 440)
         cx, cy = w/2, h/2 - 25
         self.canvas.delete("all")
-
+ 
         # ambient star/particle field - deterministic, smooth and subtle
         for i in range(34):
             a = i * 2.399 + self.phase * (0.05 if i % 2 else -0.035)
@@ -3961,20 +4039,20 @@ class JarvisGUI:
             y = cy + math.sin(a) * rr * 0.68
             size = 1 + (i % 3) * 0.45
             self.canvas.create_oval(x-size, y-size, x+size, y+size, fill="#173b4a", outline="")
-
+ 
         breath = (1 + math.sin(self.phase*1.45)) / 2
         activity = 3 + breath*5
         if self.state == "LISTENING": activity = 10 + 12*abs(math.sin(self.phase*2.3))
         elif self.state == "THINKING": activity = 8 + 7*breath
         elif self.state == "SPEAKING": activity = 11 + 15*abs(math.sin(self.phase*3.0))
         elif self.state == "SLEEPING": activity = 2 + breath*2
-
+ 
         # soft glow made from layered circles
         for i in range(8, 0, -1):
             r = 74 + i*8 + activity*.25
             shades = ["#0d1b22","#0d2029","#0e2530","#0e2a36","#10303d","#123744","#15404f","#18495a"]
             self.canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill=shades[i-1], outline="")
-
+ 
         # orbital rings with broken arcs for a more premium HUD look
         for i in range(4):
             r = 92 + i*29 + activity*(.15+i*.06)
@@ -3983,7 +4061,7 @@ class JarvisGUI:
                                    style="arc", outline=["#245268","#286b83","#2b86a0","#55c7df"][i], width=2)
             self.canvas.create_arc(cx-r, cy-r, cx+r, cy+r, start=start+180, extent=55+i*9,
                                    style="arc", outline=["#173d4e","#20586d","#24758d","#3aa7c0"][i], width=2)
-
+ 
         if self.state == "THINKING":
             for i in range(10):
                 a = self.phase*2.2 + i*(math.pi/5)
@@ -3991,14 +4069,14 @@ class JarvisGUI:
                 x, y = cx + math.cos(a)*r, cy + math.sin(a)*r
                 q = 2.5 + (i%3)
                 self.canvas.create_oval(x-q,y-q,x+q,y+q,fill="#7ee7ff",outline="")
-
+ 
         core = 59 + activity*.18
         self.canvas.create_oval(cx-core, cy-core, cx+core, cy+core, fill="#081b24", outline="#5bd8f4", width=2)
         inner = 31 + 3.5*math.sin(self.phase*1.7)
         self.canvas.create_oval(cx-inner, cy-inner, cx+inner, cy+inner, fill="#68ddf5", outline="")
         eye = 12 + 2*breath
         self.canvas.create_oval(cx-eye, cy-eye, cx+eye, cy+eye, fill="#d7f9ff", outline="")
-
+ 
         state_line = {
             "SLEEPING":"Standing by",
             "LISTENING":"I’m listening",
@@ -4008,7 +4086,7 @@ class JarvisGUI:
         }.get(self.state, self.state.title())
         self.canvas.create_text(cx, cy+190, text=state_line, fill="#d8f6fc", font=("Segoe UI Semibold", 18))
         self.canvas.create_text(cx, cy+218, text="JARVIS • PERSONAL AI", fill="#5f8493", font=("Segoe UI", 10))
-
+ 
         # living waveform, smoother than fixed bars
         if self.state in ("LISTENING", "SPEAKING"):
             points=[]
@@ -4022,9 +4100,9 @@ class JarvisGUI:
             self.canvas.create_line(*points, fill="#69dff4", width=3, smooth=True)
         else:
             self.canvas.create_line(cx-95, cy+260, cx+95, cy+260, fill="#173d49", width=2)
-
+ 
         self.root.after(35, self.animate)
-
+ 
     def close(self):
         try:
             if pygame.mixer.get_init():
@@ -4034,13 +4112,13 @@ class JarvisGUI:
             pass
         self.root.destroy()
         os._exit(0)
-
+ 
     def run(self):
         self.add_message("SYSTEM", "Ready. Say ‘Hello Jarvis’ to start.")
         threading.Thread(target=jarvis_voice_loop, daemon=True).start()
         self.root.mainloop()
-
-
+ 
+ 
 if __name__ == "__main__":
     if not GROQ_API_KEY:
         print("AI note: GROQ_API_KEY environment variable set nahi hai; AI/NLU features require a key.")
@@ -4050,3 +4128,4 @@ if __name__ == "__main__":
     else:
         GUI_APP = JarvisGUI()
         GUI_APP.run()
+ 
